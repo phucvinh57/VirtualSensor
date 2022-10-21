@@ -1,4 +1,3 @@
-
 mod network_stat;
 mod process;
 mod common;
@@ -91,7 +90,7 @@ fn listen_thread() -> Result<(), DaemonError> {
                 let mut total_stat = TotalStat::new();
 
                 // get network raw stat
-                total_stat.network_rawstat = network_stat::GetNetworkRawStat()?;
+                total_stat.network_rawstat = network_stat::get_network_rawstat()?;
 
                 // get global config
                 let glob_conf = config::get_glob_conf().unwrap();
@@ -175,7 +174,7 @@ fn listen_thread() -> Result<(), DaemonError> {
                 }
 
                 // clean up network raw stat
-                total_stat.network_rawstat.RemoveUsedUniConnectionStats();
+                total_stat.network_rawstat.remove_used_uni_connection_stats();
 
                 // return result
                 if config::get_glob_conf().unwrap().is_print_pretty_output() {
@@ -202,7 +201,7 @@ fn main() -> Result<(), DaemonError> {
     config::init_glob_conf(&env::args().nth(1).unwrap())?;
 
     // init network capture
-    network_stat::InitNetworkStatCapture()?;
+    network_stat::init_network_stat_capture()?;
 
     // init listen thread
     let listen_thread = thread::spawn(|| listen_thread());

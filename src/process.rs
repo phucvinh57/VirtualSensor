@@ -670,15 +670,15 @@ impl Thread {
     ) -> Result<ThreadStat, ProcessError> {
         let thread_taskstats = taskstats_conn.get_thread_taskstats(self.real_tid)?;
 
-        self.stat.total_system_cpu_time = thread_taskstats.systemCpuTime;
-        self.stat.total_user_cpu_time = thread_taskstats.userCpuTime;
-        self.stat.total_cpu_time = thread_taskstats.systemCpuTime + thread_taskstats.userCpuTime;
+        self.stat.total_system_cpu_time = thread_taskstats.system_cpu_time;
+        self.stat.total_user_cpu_time = thread_taskstats.user_cpu_time;
+        self.stat.total_cpu_time = thread_taskstats.system_cpu_time + thread_taskstats.user_cpu_time;
 
-        self.stat.total_io_read = thread_taskstats.ioRead;
-        self.stat.total_io_write = thread_taskstats.ioWrite;
+        self.stat.total_io_read = thread_taskstats.io_read;
+        self.stat.total_io_write = thread_taskstats.io_write;
 
-        self.stat.total_block_io_read = thread_taskstats.blockIORead;
-        self.stat.total_block_io_write = thread_taskstats.blockIOWrite;
+        self.stat.total_block_io_read = thread_taskstats.block_io_read;
+        self.stat.total_block_io_write = thread_taskstats.block_io_write;
 
         Ok(self.stat)
     }
@@ -891,26 +891,26 @@ impl Process {
 
         // match inode to uniconnection stat
         for inode in inodes {
-            if let Some(connection) = net_rawstat.LookupConnection(&inode) {
+            if let Some(connection) = net_rawstat.lookup_connection(&inode) {
                 let connection = connection.clone();
 
-                if let Some(iname) = net_rawstat.LookupInterfaceName(&connection) {
+                if let Some(iname) = net_rawstat.lookup_interface_name(&connection) {
                     let iname = iname.to_string();
 
-                    let uni_conn = UniConnection::New(
-                        connection.LocalAddr(),
-                        connection.LocalPort(),
-                        connection.RemoteAddr(),
-                        connection.RemotePort(),
-                        connection.ConnectionType(),
+                    let uni_conn = UniConnection::new(
+                        connection.get_local_addr(),
+                        connection.get_local_port(),
+                        connection.get_remote_addr(),
+                        connection.get_remote_port(),
+                        connection.get_conn_type(),
                     );
 
-                    let reverse_uni_conn = UniConnection::New(
-                        connection.RemoteAddr(),
-                        connection.RemotePort(),
-                        connection.LocalAddr(),
-                        connection.LocalPort(),
-                        connection.ConnectionType(),
+                    let reverse_uni_conn = UniConnection::new(
+                        connection.get_remote_addr(),
+                        connection.get_remote_port(),
+                        connection.get_local_addr(),
+                        connection.get_local_port(),
+                        connection.get_conn_type(),
                     );
 
                     // get interface raw stats
@@ -920,25 +920,25 @@ impl Process {
                         // get 2 uniconnection stats from interface raw stat
                         let uni_conn_stat = irawstat
                             .get_uni_conn_stat(&uni_conn)
-                            .unwrap_or(&UniConnectionStat::New(uni_conn))
+                            .unwrap_or(&UniConnectionStat::new(uni_conn))
                             .clone();
 
                         let reverse_uni_conn_stat = irawstat
                             .get_uni_conn_stat(&reverse_uni_conn)
-                            .unwrap_or(&UniConnectionStat::New(reverse_uni_conn))
+                            .unwrap_or(&UniConnectionStat::new(reverse_uni_conn))
                             .clone();
 
                         // make new connection stat
                         let mut conn_stat = ConnectionStat::new(connection.clone());
 
-                        conn_stat.pack_sent = uni_conn_stat.PacketCount();
-                        conn_stat.pack_recv = reverse_uni_conn_stat.PacketCount();
+                        conn_stat.pack_sent = uni_conn_stat.get_packet_count();
+                        conn_stat.pack_recv = reverse_uni_conn_stat.get_packet_count();
 
-                        conn_stat.total_data_sent = uni_conn_stat.TotalDataCount();
-                        conn_stat.total_data_recv = reverse_uni_conn_stat.TotalDataCount();
+                        conn_stat.total_data_sent = uni_conn_stat.get_total_data_count();
+                        conn_stat.total_data_recv = reverse_uni_conn_stat.get_total_data_count();
 
-                        conn_stat.real_data_sent = uni_conn_stat.RealDataCount();
-                        conn_stat.real_data_recv = reverse_uni_conn_stat.RealDataCount();
+                        conn_stat.real_data_sent = uni_conn_stat.get_real_data_count();
+                        conn_stat.real_data_recv = reverse_uni_conn_stat.get_real_data_count();
 
                         // add new connection stat to interface stat
                         self.stat

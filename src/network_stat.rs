@@ -27,141 +27,143 @@ pub enum ConnectionType {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize)]
 pub struct UniConnection {
-    srcAddr: IpAddr,
-    srcPort: u16,
-    desAddr: IpAddr,
-    desPort: u16,
-    connectionType: ConnectionType,
+    src_addr: IpAddr,
+    src_port: u16,
+    dest_addr: IpAddr,
+    dest_port: u16,
+    conn_type: ConnectionType,
 }
 
+#[allow(unused)]
 impl UniConnection {
-    pub fn New(
-        srcAddr: IpAddr,
-        srcPort: u16,
-        desAddr: IpAddr,
-        desPort: u16,
-        connectionType: ConnectionType,
+    pub fn new(
+        src_addr: IpAddr,
+        src_port: u16,
+        dest_addr: IpAddr,
+        dest_port: u16,
+        conn_type: ConnectionType,
     ) -> Self {
         Self {
-            srcAddr,
-            srcPort,
-            desAddr,
-            desPort,
-            connectionType,
+            src_addr,
+            src_port,
+            dest_addr,
+            dest_port,
+            conn_type,
         }
     }
 
-    pub fn SrcAddr(&self) -> IpAddr {
-        self.srcAddr
+    pub fn get_src_addr(&self) -> IpAddr {
+        self.src_addr
     }
 
-    pub fn SrcPort(&self) -> u16 {
-        self.srcPort
+    pub fn get_src_port(&self) -> u16 {
+        self.src_port
     }
 
-    pub fn DesAddr(&self) -> IpAddr {
-        self.desAddr
+    pub fn get_dest_addr(&self) -> IpAddr {
+        self.dest_addr
     }
 
-    pub fn DesPort(&self) -> u16 {
-        self.desPort
+    pub fn get_dest_port(&self) -> u16 {
+        self.dest_port
     }
 
-    pub fn ConnectionType(&self) -> ConnectionType {
-        self.connectionType
+    pub fn get_conn_type(&self) -> ConnectionType {
+        self.conn_type
     }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize)]
 pub struct Connection {
-    localAddr: IpAddr,
-    localPort: u16,
-    remoteAddr: IpAddr,
-    remotePort: u16,
-    connectionType: ConnectionType,
+    local_addr: IpAddr,
+    local_port: u16,
+    remote_addr: IpAddr,
+    remote_port: u16,
+    conn_type: ConnectionType,
 }
 
 impl Connection {
-    pub fn New(
-        localAddr: IpAddr,
-        localPort: u16,
-        remoteAddr: IpAddr,
-        remotePort: u16,
-        connectionType: ConnectionType,
+    pub fn new(
+        local_addr: IpAddr,
+        local_port: u16,
+        remote_addr: IpAddr,
+        remote_port: u16,
+        conn_type: ConnectionType,
     ) -> Self {
         Self {
-            localAddr,
-            localPort,
-            remoteAddr,
-            remotePort,
-            connectionType,
+            local_addr,
+            local_port,
+            remote_addr,
+            remote_port,
+            conn_type,
         }
     }
 
-    pub fn LocalAddr(&self) -> IpAddr {
-        self.localAddr
+    pub fn get_local_addr(&self) -> IpAddr {
+        self.local_addr
     }
 
-    pub fn LocalPort(&self) -> u16 {
-        self.localPort
+    pub fn get_local_port(&self) -> u16 {
+        self.local_port
     }
 
-    pub fn RemoteAddr(&self) -> IpAddr {
-        self.remoteAddr
+    pub fn get_remote_addr(&self) -> IpAddr {
+        self.remote_addr
     }
 
-    pub fn RemotePort(&self) -> u16 {
-        self.remotePort
+    pub fn get_remote_port(&self) -> u16 {
+        self.remote_port
     }
 
-    pub fn ConnectionType(&self) -> ConnectionType {
-        self.connectionType
+    pub fn get_conn_type(&self) -> ConnectionType {
+        self.conn_type
     }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize)]
 pub struct UniConnectionStat {
-    uniConnection: UniConnection,
+    uni_conn: UniConnection,
 
-    packetCount: Count,
-    totalDataCount: DataCount,
-    realDataCount: DataCount,
+    packet_count: Count,
+    total_data_count: DataCount,
+    real_data_count: DataCount,
 
     #[serde(skip_serializing)]
-    isUsed: bool,
+    is_used: bool,
 }
 
+#[allow(unused)]
 impl UniConnectionStat {
-    pub fn New(uniConnection: UniConnection) -> Self {
+    pub fn new(uni_conn: UniConnection) -> Self {
         Self {
-            uniConnection,
+            uni_conn,
 
-            packetCount: Count::new(0),
-            totalDataCount: DataCount::from_byte(0),
-            realDataCount: DataCount::from_byte(0),
+            packet_count: Count::new(0),
+            total_data_count: DataCount::from_byte(0),
+            real_data_count: DataCount::from_byte(0),
 
-            isUsed: false,
+            is_used: false,
         }
     }
 
-    pub fn UniConnection(&self) -> UniConnection {
-        self.uniConnection
+    pub fn get_uni_conn(&self) -> UniConnection {
+        self.uni_conn
     }
 
-    pub fn PacketCount(&self) -> Count {
-        self.packetCount
+    pub fn get_packet_count(&self) -> Count {
+        self.packet_count
     }
 
-    pub fn TotalDataCount(&self) -> DataCount {
-        self.totalDataCount
+    pub fn get_total_data_count(&self) -> DataCount {
+        self.total_data_count
     }
 
-    pub fn RealDataCount(&self) -> DataCount {
-        self.realDataCount
+    pub fn get_real_data_count(&self) -> DataCount {
+        self.real_data_count
     }
 
-    fn MarkAsUsed(&mut self) {
-        self.isUsed = true;
+    fn mark_as_used(&mut self) {
+        self.is_used = true;
     }
 }
 
@@ -170,18 +172,18 @@ impl Add<Self> for UniConnectionStat {
 
     fn add(self, other: Self) -> Self {
         assert!(
-            self.uniConnection == other.uniConnection,
+            self.uni_conn == other.uni_conn,
             "Can't add different uniconnections!"
         );
 
         Self {
-            uniConnection: self.uniConnection,
+            uni_conn: self.uni_conn,
 
-            packetCount: self.packetCount + other.packetCount,
-            totalDataCount: self.totalDataCount + other.totalDataCount,
-            realDataCount: self.realDataCount + other.realDataCount,
+            packet_count: self.packet_count + other.packet_count,
+            total_data_count: self.total_data_count + other.total_data_count,
+            real_data_count: self.real_data_count + other.real_data_count,
 
-            isUsed: false,
+            is_used: false,
         }
     }
 }
@@ -189,57 +191,57 @@ impl Add<Self> for UniConnectionStat {
 impl AddAssign<Self> for UniConnectionStat {
     fn add_assign(&mut self, other: Self) {
         assert!(
-            self.uniConnection == other.uniConnection,
+            self.uni_conn == other.uni_conn,
             "Can't add different uniconnections!"
         );
 
-        self.packetCount += other.packetCount;
-        self.totalDataCount += other.totalDataCount;
-        self.realDataCount += other.realDataCount;
+        self.packet_count += other.packet_count;
+        self.total_data_count += other.total_data_count;
+        self.real_data_count += other.real_data_count;
     }
 }
 
 #[derive(Debug)]
 struct ThreadData {
     device: Device,
-    uniConnectionStats: Option<HashMap<UniConnection, UniConnectionStat>>,
+    uni_conn_stats: Option<HashMap<UniConnection, UniConnectionStat>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct InterfaceRawStat {
-    interfaceName: String,
+    iname: String,
     description: String,
 
-    #[serde(serialize_with = "InterfaceRawStatUniConnectionStatsSerialize")]
-    uniConnectionStats: HashMap<UniConnection, UniConnectionStat>,
+    #[serde(serialize_with = "get_irawstat_uni_conn_stats_serialize")]
+    uni_conn_stats: HashMap<UniConnection, UniConnectionStat>,
 }
 
 impl InterfaceRawStat {
-    pub fn New(interfaceName: String, description: String) -> Self {
+    pub fn new(iname: String, description: String) -> Self {
         Self {
-            interfaceName,
+            iname,
             description,
-            uniConnectionStats: HashMap::new(),
+            uni_conn_stats: HashMap::new(),
         }
     }
 
     pub fn get_uni_conn_stat(
         &mut self,
-        uniConnection: &UniConnection,
+        uni_conn: &UniConnection,
     ) -> Option<&UniConnectionStat> {
-        self.uniConnectionStats.get_mut(uniConnection).map(|x| {
-            x.MarkAsUsed();
+        self.uni_conn_stats.get_mut(uni_conn).map(|x| {
+            x.mark_as_used();
             &*x
         })
     }
 
-    pub fn RemoveUsedUniConnectionStats(&mut self) {
-        self.uniConnectionStats
-            .retain(|_uniConnection, uniConnectionStat| !uniConnectionStat.isUsed);
+    pub fn remove_used_uni_conn_stats(&mut self) {
+        self.uni_conn_stats
+            .retain(|_uni_conn, uni_conn_stat| !uni_conn_stat.is_used);
     }
 }
 
-fn InterfaceRawStatUniConnectionStatsSerialize<S: Serializer>(
+fn get_irawstat_uni_conn_stats_serialize<S: Serializer>(
     input: &HashMap<UniConnection, UniConnectionStat>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
@@ -249,57 +251,57 @@ fn InterfaceRawStatUniConnectionStatsSerialize<S: Serializer>(
 #[derive(Debug, Clone, Serialize)]
 pub struct NetworkRawStat {
     #[serde(skip_serializing)]
-    connectionLookupTable: HashMap<Inode, Connection>,
+    conn_lookup_table: HashMap<Inode, Connection>,
 
     #[serde(skip_serializing)]
-    interfaceNameLookupTable: HashMap<Connection, String>,
+    iname_lookup_table: HashMap<Connection, String>,
 
-    #[serde(serialize_with = "NetworkRawStatUniConnectionStatsSerialize")]
-    interfaceRawStats: HashMap<String, InterfaceRawStat>,
+    #[serde(serialize_with = "get_network_rawstat_uni_connection_stats_serialize")]
+    irawstats: HashMap<String, InterfaceRawStat>,
 }
 
 impl NetworkRawStat {
     pub fn new() -> Self {
         Self {
-            connectionLookupTable: HashMap::new(),
-            interfaceNameLookupTable: HashMap::new(),
-            interfaceRawStats: HashMap::new(),
+            conn_lookup_table: HashMap::new(),
+            iname_lookup_table: HashMap::new(),
+            irawstats: HashMap::new(),
         }
     }
 
-    pub fn LookupConnection(&self, inode: &Inode) -> Option<&Connection> {
-        self.connectionLookupTable
+    pub fn lookup_connection(&self, inode: &Inode) -> Option<&Connection> {
+        self.conn_lookup_table
             .get(inode)
             .and_then(|connection| Some(connection))
     }
 
-    pub fn LookupInterfaceName(&self, connection: &Connection) -> Option<&str> {
-        self.interfaceNameLookupTable
+    pub fn lookup_interface_name(&self, connection: &Connection) -> Option<&str> {
+        self.iname_lookup_table
             .get(connection)
             .and_then(|name| Some(name.as_str()))
     }
 
-    pub fn get_irawstat(&mut self, interfaceName: &str) -> Option<&mut InterfaceRawStat> {
-        self.interfaceRawStats
-            .get_mut(interfaceName)
-            .and_then(|interfaceRawStat| Some(interfaceRawStat))
+    pub fn get_irawstat(&mut self, iname: &str) -> Option<&mut InterfaceRawStat> {
+        self.irawstats
+            .get_mut(iname)
+            .and_then(|irawstat| Some(irawstat))
     }
 
-    pub fn RemoveUsedUniConnectionStats(&mut self) {
-        for (_, interfaceRawStat) in &mut self.interfaceRawStats {
-            interfaceRawStat.RemoveUsedUniConnectionStats();
+    pub fn remove_used_uni_connection_stats(&mut self) {
+        for (_, irawstat) in &mut self.irawstats {
+            irawstat.remove_used_uni_conn_stats();
         }
     }
 }
 
-fn NetworkRawStatUniConnectionStatsSerialize<S: Serializer>(
+fn get_network_rawstat_uni_connection_stats_serialize<S: Serializer>(
     input: &HashMap<String, InterfaceRawStat>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     serializer.collect_seq(input.values())
 }
 
-fn ParseIpv4Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
+fn parse_ipv4_packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     const IPV4_FIXED_HEADER_SIZE: usize = 20;
 
     // check fixed header len
@@ -315,52 +317,52 @@ fn ParseIpv4Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     }
 
     // get header len
-    let headerLength = ((data[0] & 0x0f) * 4) as usize;
+    let header_len = ((data[0] & 0x0f) * 4) as usize;
 
     // get payload len
-    let payloadLength = u16::from_be_bytes(data[2..4].try_into().unwrap()) as usize - headerLength;
+    let payload_length = u16::from_be_bytes(data[2..4].try_into().unwrap()) as usize - header_len;
 
     // get payload protocol
-    let connectionType = match data[9] {
+    let conn_type = match data[9] {
         TCP_PAYLOAD_TYPE => ConnectionType::TCP,
         UDP_PAYLOAD_TYPE => ConnectionType::UDP,
         _ => return Err(NetworkStatError::UnsupportedProtocol(data[9])),
     };
 
     // get src ip begin at data[12]
-    let srcAddr = IpAddr::V4(Ipv4Addr::new(data[12], data[13], data[14], data[15]));
+    let src_addr = IpAddr::V4(Ipv4Addr::new(data[12], data[13], data[14], data[15]));
 
     // get des ip begin at data[16]
-    let desAddr = IpAddr::V4(Ipv4Addr::new(data[16], data[17], data[18], data[19]));
+    let dest_addr = IpAddr::V4(Ipv4Addr::new(data[16], data[17], data[18], data[19]));
 
     // get source port
-    let srcPort = u16::from_be_bytes(
-        data.get(headerLength..headerLength + 2)
+    let src_port = u16::from_be_bytes(
+        data.get(header_len..header_len + 2)
             .ok_or(NetworkStatError::ConvertErr)?
             .try_into()
             .unwrap(),
     );
 
     // get des port
-    let desPort = u16::from_be_bytes(
-        data.get(headerLength + 2..headerLength + 4)
+    let dest_port = u16::from_be_bytes(
+        data.get(header_len + 2..header_len + 4)
             .ok_or(NetworkStatError::ConvertErr)?
             .try_into()
             .unwrap(),
     );
 
     Ok(UniConnectionStat {
-        uniConnection: UniConnection::New(srcAddr, srcPort, desAddr, desPort, connectionType),
+        uni_conn: UniConnection::new(src_addr, src_port, dest_addr, dest_port, conn_type),
 
-        packetCount: Count::new(1),
-        totalDataCount: DataCount::from_byte(0),
-        realDataCount: DataCount::from_byte(payloadLength),
+        packet_count: Count::new(1),
+        total_data_count: DataCount::from_byte(0),
+        real_data_count: DataCount::from_byte(payload_length),
 
-        isUsed: false,
+        is_used: false,
     })
 }
 
-fn ParseIpv6Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
+fn parse_ipv6_packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     const IPV6_FIXED_HEADER_SIZE: usize = 40;
 
     // check fixed header len
@@ -376,7 +378,7 @@ fn ParseIpv6Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     }
 
     // get payload length
-    let payloadLength = u16::from_be_bytes(data[4..6].try_into().unwrap()) as usize;
+    let payload_length = u16::from_be_bytes(data[4..6].try_into().unwrap()) as usize;
 
     // get src ip begin at data[8]
     let a = u16::from_be_bytes(data[8..10].try_into().unwrap());
@@ -387,7 +389,7 @@ fn ParseIpv6Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     let f = u16::from_be_bytes(data[18..20].try_into().unwrap());
     let g = u16::from_be_bytes(data[20..22].try_into().unwrap());
     let h = u16::from_be_bytes(data[22..24].try_into().unwrap());
-    let srcAddr = IpAddr::V6(Ipv6Addr::new(a, b, c, d, e, f, g, h));
+    let src_addr = IpAddr::V6(Ipv6Addr::new(a, b, c, d, e, f, g, h));
 
     // get des ip begin at data[24]
     let a = u16::from_be_bytes(data[24..26].try_into().unwrap());
@@ -398,87 +400,85 @@ fn ParseIpv6Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     let f = u16::from_be_bytes(data[34..36].try_into().unwrap());
     let g = u16::from_be_bytes(data[36..38].try_into().unwrap());
     let h = u16::from_be_bytes(data[38..40].try_into().unwrap());
-    let desAddr = IpAddr::V6(Ipv6Addr::new(a, b, c, d, e, f, g, h));
+    let dest_addr = IpAddr::V6(Ipv6Addr::new(a, b, c, d, e, f, g, h));
 
     // skip through ipv6 extension headers
-    let mut nextHeaderType = data[6];
-    let mut currentIndex = IPV6_FIXED_HEADER_SIZE;
-    let ipv6ExtensionHeaderTypes = [0, 43, 44, 51, 50, 60, 135, 139, 140, 253, 254];
-    let normalPayloadTypes = [6, 17];
+    let mut next_header_type = data[6];
+    let mut curr_idx = IPV6_FIXED_HEADER_SIZE;
+    let ipv6_extension_header_types = [0, 43, 44, 51, 50, 60, 135, 139, 140, 253, 254];
+    let normal_payload_types = [6, 17];
 
     loop {
-        match nextHeaderType {
-            x if normalPayloadTypes.contains(&x) => break,
-            x if ipv6ExtensionHeaderTypes.contains(&x) => {
+        match next_header_type {
+            x if normal_payload_types.contains(&x) => break,
+            x if ipv6_extension_header_types.contains(&x) => {
                 let tmp = data
-                    .get(currentIndex..currentIndex + 2)
+                    .get(curr_idx..curr_idx + 2)
                     .ok_or(NetworkStatError::ConvertErr)?;
-                nextHeaderType = tmp[0];
-                currentIndex += tmp[1] as usize;
+                next_header_type = tmp[0];
+                curr_idx += tmp[1] as usize;
             }
-            headerType => {
-                return Err(NetworkStatError::Ipv6UnknownOptionalHeaderType(
-                    headerType,
-                ))
-            }
+            header_type => return Err(NetworkStatError::Ipv6UnknownOptionalHeaderType(header_type)),
         }
     }
 
     // get payload protocol
-    let connectionType = match nextHeaderType {
+    let conn_type = match next_header_type {
         TCP_PAYLOAD_TYPE => ConnectionType::TCP,
         UDP_PAYLOAD_TYPE => ConnectionType::UDP,
-        _ => return Err(NetworkStatError::UnsupportedProtocol(nextHeaderType)),
+        _ => return Err(NetworkStatError::UnsupportedProtocol(next_header_type)),
     };
 
     // get src port
-    let srcPort = u16::from_be_bytes(
-        data.get(currentIndex..currentIndex + 2)
+    let src_port = u16::from_be_bytes(
+        data.get(curr_idx..curr_idx + 2)
             .ok_or(NetworkStatError::ConvertErr)?
             .try_into()
             .unwrap(),
     );
 
     // get des port
-    let desPort = u16::from_be_bytes(
-        data.get(currentIndex + 2..currentIndex + 4)
+    let dest_port = u16::from_be_bytes(
+        data.get(curr_idx + 2..curr_idx + 4)
             .ok_or(NetworkStatError::ConvertErr)?
             .try_into()
             .unwrap(),
     );
 
     Ok(UniConnectionStat {
-        uniConnection: UniConnection::New(srcAddr, srcPort, desAddr, desPort, connectionType),
+        uni_conn: UniConnection::new(src_addr, src_port, dest_addr, dest_port, conn_type),
 
-        packetCount: Count::new(1),
-        totalDataCount: DataCount::from_byte(0),
-        realDataCount: DataCount::from_byte(payloadLength - (currentIndex - IPV6_FIXED_HEADER_SIZE)),
+        packet_count: Count::new(1),
+        total_data_count: DataCount::from_byte(0),
+        real_data_count: DataCount::from_byte(
+            payload_length - (curr_idx - IPV6_FIXED_HEADER_SIZE),
+        ),
 
-        isUsed: false,
+        is_used: false,
     })
 }
 
-fn GetUniConnectionStat(packet: Packet) -> Result<UniConnectionStat, NetworkStatError> {
+fn get_uni_conn_stat(packet: Packet) -> Result<UniConnectionStat, NetworkStatError> {
     let data = packet.data;
 
     // skip all the vlan tags
-    let mut currentIndex = 12;
+    let mut curr_idx = 12;
 
     loop {
         let tag = u16::from_be_bytes(
-            data.get(currentIndex..currentIndex + 2)
+            data.get(curr_idx..curr_idx + 2)
                 .ok_or(NetworkStatError::ConvertErr)?
                 .try_into()
                 .unwrap(),
         );
         match tag {
             0x0800 | 0x86DD => break,
-            0x8100 | 0x88A8 => currentIndex += 4,
-            vlanTag => return Err(NetworkStatError::UnknownVLANTag(vlanTag)),
+            0x8100 | 0x88A8 => curr_idx += 4,
+            vlan_tag => return Err(NetworkStatError::UnknownVLANTag(vlan_tag)),
         }
     }
 
-    let data = &data[currentIndex..];
+    let data = &data[curr_idx..];
 
     let result = match u16::from_be_bytes(
         data.get(0..2)
@@ -486,46 +486,46 @@ fn GetUniConnectionStat(packet: Packet) -> Result<UniConnectionStat, NetworkStat
             .try_into()
             .unwrap(),
     ) {
-        0x0800 => ParseIpv4Packet(&data[2..]),
-        0x86DD => ParseIpv6Packet(&data[2..]),
+        0x0800 => parse_ipv4_packet(&data[2..]),
+        0x86DD => parse_ipv6_packet(&data[2..]),
         protocol => Err(NetworkStatError::UnknownProtocol(protocol)),
     };
 
     result.and_then(|mut x| {
-        x.totalDataCount = DataCount::from_byte(packet.header.len.try_into().unwrap());
+        x.total_data_count = DataCount::from_byte(packet.header.len.try_into().unwrap());
         Ok(x)
     })
 }
 
-fn ControlThread(
-    controlDataInReadEnd: Receiver<()>,
-    controlDataOutWriteEnd: Sender<NetworkRawStat>,
+fn control_thread(
+    ctrl_data_in_read_end: Receiver<()>,
+    ctrl_data_in_write_end: Sender<NetworkRawStat>,
 ) -> Result<(), NetworkStatError> {
     // get interface list
     let devices = Device::list()?;
 
-    let mut threadDatas: HashMap<String, Arc<Mutex<ThreadData>>> = HashMap::new();
+    let mut thread_data: HashMap<String, Arc<Mutex<ThreadData>>> = HashMap::new();
 
     loop {
         // check if someone want to get data
-        match controlDataInReadEnd
+        match ctrl_data_in_read_end
             .recv_timeout(config::get_glob_conf()?.get_control_command_receive_timeout())
         {
             Ok(_) => {
-                let mut networkRawStat = NetworkRawStat::new();
+                let mut network_raw_stat = NetworkRawStat::new();
 
                 // build inode lookup table
-                let tcpContent = fs::read_to_string("/proc/net/tcp")?;
-                let tcp6Content = fs::read_to_string("/proc/net/tcp6")?;
-                let udpContent = fs::read_to_string("/proc/net/udp")?;
-                let udp6Content = fs::read_to_string("/proc/net/udp6")?;
+                let tcp_content = fs::read_to_string("/proc/net/tcp")?;
+                let tcp6_content = fs::read_to_string("/proc/net/tcp6")?;
+                let udp_content = fs::read_to_string("/proc/net/udp")?;
+                let udp6_content = fs::read_to_string("/proc/net/udp6")?;
 
-                let tcpLines: Vec<&str> = tcpContent.lines().collect();
-                let tcp6Lines: Vec<&str> = tcp6Content.lines().collect();
-                let udpLines: Vec<&str> = udpContent.lines().collect();
-                let udp6Lines: Vec<&str> = udp6Content.lines().collect();
+                let tcp_lines: Vec<&str> = tcp_content.lines().collect();
+                let tcp6_lines: Vec<&str> = tcp6_content.lines().collect();
+                let udp_lines: Vec<&str> = udp_content.lines().collect();
+                let udp6_lines: Vec<&str> = udp6_content.lines().collect();
 
-                for tcp in &tcpLines[1..] {
+                for tcp in &tcp_lines[1..] {
                     let a: Vec<&str> = tcp.split_whitespace().collect();
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
@@ -539,39 +539,39 @@ fn ControlThread(
                         return Err(NetworkStatError::ConvertErr);
                     }
 
-                    let localAddr = IpAddr::V4(Ipv4Addr::new(d[0], d[1], d[2], d[3]));
-                    let localPort = u16::from_be_bytes(e[0..2].try_into().unwrap());
+                    let local_addr = IpAddr::V4(Ipv4Addr::new(d[0], d[1], d[2], d[3]));
+                    let local_port = u16::from_be_bytes(e[0..2].try_into().unwrap());
 
-                    let remoteAddr = IpAddr::V4(Ipv4Addr::new(f[0], f[1], f[2], f[3]));
-                    let remotePort = u16::from_be_bytes(g[0..2].try_into().unwrap());
+                    let remote_addr = IpAddr::V4(Ipv4Addr::new(f[0], f[1], f[2], f[3]));
+                    let remote_port = u16::from_be_bytes(g[0..2].try_into().unwrap());
 
-                    if localAddr == NULL_IPV4 || remoteAddr == NULL_IPV4 {
+                    if local_addr == NULL_IPV4 || remote_addr == NULL_IPV4 {
                         continue;
                     }
 
-                    let connection = Connection::New(
-                        localAddr,
-                        localPort,
-                        remoteAddr,
-                        remotePort,
+                    let connection = Connection::new(
+                        local_addr,
+                        local_port,
+                        remote_addr,
+                        remote_port,
                         ConnectionType::TCP,
                     );
 
-                    networkRawStat
-                        .connectionLookupTable
+                    network_raw_stat
+                        .conn_lookup_table
                         .insert(Inode::new(a[9].parse()?), connection);
 
                     'outer1: for device in &devices {
                         for address in &device.addresses {
                             if common::addr_in_network(
-                                &localAddr,
+                                &local_addr,
                                 &address.addr,
                                 &address.netmask.unwrap(),
                             )
                             .unwrap_or(false)
                             {
-                                networkRawStat
-                                    .interfaceNameLookupTable
+                                network_raw_stat
+                                    .iname_lookup_table
                                     .insert(connection, device.name.clone());
                                 break 'outer1;
                             }
@@ -579,7 +579,7 @@ fn ControlThread(
                     }
                 }
 
-                for tcp6 in &tcp6Lines[1..] {
+                for tcp6 in &tcp6_lines[1..] {
                     let a: Vec<&str> = tcp6.split_whitespace().collect();
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
@@ -601,8 +601,8 @@ fn ControlThread(
                     let x6 = u16::from_be_bytes(d[10..12].try_into().unwrap());
                     let x7 = u16::from_be_bytes(d[12..14].try_into().unwrap());
                     let x8 = u16::from_be_bytes(d[14..16].try_into().unwrap());
-                    let localAddr = IpAddr::V6(Ipv6Addr::new(x1, x2, x3, x4, x5, x6, x7, x8));
-                    let localPort = u16::from_be_bytes(e[0..2].try_into().unwrap());
+                    let local_addr = IpAddr::V6(Ipv6Addr::new(x1, x2, x3, x4, x5, x6, x7, x8));
+                    let local_port = u16::from_be_bytes(e[0..2].try_into().unwrap());
 
                     let x1 = u16::from_be_bytes(f[0..2].try_into().unwrap());
                     let x2 = u16::from_be_bytes(f[2..4].try_into().unwrap());
@@ -612,36 +612,36 @@ fn ControlThread(
                     let x6 = u16::from_be_bytes(f[10..12].try_into().unwrap());
                     let x7 = u16::from_be_bytes(f[12..14].try_into().unwrap());
                     let x8 = u16::from_be_bytes(f[14..16].try_into().unwrap());
-                    let remoteAddr = IpAddr::V6(Ipv6Addr::new(x1, x2, x3, x4, x5, x6, x7, x8));
-                    let remotePort = u16::from_be_bytes(g[0..2].try_into().unwrap());
+                    let remote_addr = IpAddr::V6(Ipv6Addr::new(x1, x2, x3, x4, x5, x6, x7, x8));
+                    let remote_port = u16::from_be_bytes(g[0..2].try_into().unwrap());
 
-                    let connection = Connection::New(
-                        localAddr,
-                        localPort,
-                        remoteAddr,
-                        remotePort,
+                    let connection = Connection::new(
+                        local_addr,
+                        local_port,
+                        remote_addr,
+                        remote_port,
                         ConnectionType::TCP,
                     );
 
-                    if localAddr == NULL_IPV6 || remoteAddr == NULL_IPV6 {
+                    if local_addr == NULL_IPV6 || remote_addr == NULL_IPV6 {
                         continue;
                     }
 
-                    networkRawStat
-                        .connectionLookupTable
+                    network_raw_stat
+                        .conn_lookup_table
                         .insert(Inode::new(a[9].parse()?), connection);
 
                     'outer2: for device in &devices {
                         for address in &device.addresses {
                             if common::addr_in_network(
-                                &localAddr,
+                                &local_addr,
                                 &address.addr,
                                 &address.netmask.unwrap(),
                             )
                             .unwrap_or(false)
                             {
-                                networkRawStat
-                                    .interfaceNameLookupTable
+                                network_raw_stat
+                                    .iname_lookup_table
                                     .insert(connection, device.name.clone());
                                 break 'outer2;
                             }
@@ -649,7 +649,7 @@ fn ControlThread(
                     }
                 }
 
-                for udp in &udpLines[1..] {
+                for udp in &udp_lines[1..] {
                     let a: Vec<&str> = udp.split_whitespace().collect();
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
@@ -663,39 +663,39 @@ fn ControlThread(
                         return Err(NetworkStatError::ConvertErr);
                     }
 
-                    let localAddr = IpAddr::V4(Ipv4Addr::new(d[0], d[1], d[2], d[3]));
-                    let localPort = u16::from_be_bytes(e[0..2].try_into().unwrap());
+                    let local_addr = IpAddr::V4(Ipv4Addr::new(d[0], d[1], d[2], d[3]));
+                    let local_port = u16::from_be_bytes(e[0..2].try_into().unwrap());
 
-                    let remoteAddr = IpAddr::V4(Ipv4Addr::new(f[0], f[1], f[2], f[3]));
-                    let remotePort = u16::from_be_bytes(g[0..2].try_into().unwrap());
+                    let remote_addr = IpAddr::V4(Ipv4Addr::new(f[0], f[1], f[2], f[3]));
+                    let remote_port = u16::from_be_bytes(g[0..2].try_into().unwrap());
 
-                    let connection = Connection::New(
-                        localAddr,
-                        localPort,
-                        remoteAddr,
-                        remotePort,
+                    let connection = Connection::new(
+                        local_addr,
+                        local_port,
+                        remote_addr,
+                        remote_port,
                         ConnectionType::UDP,
                     );
 
-                    if localAddr == NULL_IPV4 || remoteAddr == NULL_IPV4 {
+                    if local_addr == NULL_IPV4 || remote_addr == NULL_IPV4 {
                         continue;
                     }
 
-                    networkRawStat
-                        .connectionLookupTable
+                    network_raw_stat
+                        .conn_lookup_table
                         .insert(Inode::new(a[9].parse()?), connection);
 
                     'outer3: for device in &devices {
                         for address in &device.addresses {
                             if common::addr_in_network(
-                                &localAddr,
+                                &local_addr,
                                 &address.addr,
                                 &address.netmask.unwrap(),
                             )
                             .unwrap_or(false)
                             {
-                                networkRawStat
-                                    .interfaceNameLookupTable
+                                network_raw_stat
+                                    .iname_lookup_table
                                     .insert(connection, device.name.clone());
                                 break 'outer3;
                             }
@@ -703,7 +703,7 @@ fn ControlThread(
                     }
                 }
 
-                for udp6 in &udp6Lines[1..] {
+                for udp6 in &udp6_lines[1..] {
                     let a: Vec<&str> = udp6.split_whitespace().collect();
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
@@ -725,8 +725,8 @@ fn ControlThread(
                     let x6 = u16::from_be_bytes(d[10..12].try_into().unwrap());
                     let x7 = u16::from_be_bytes(d[12..14].try_into().unwrap());
                     let x8 = u16::from_be_bytes(d[14..16].try_into().unwrap());
-                    let localAddr = IpAddr::V6(Ipv6Addr::new(x1, x2, x3, x4, x5, x6, x7, x8));
-                    let localPort = u16::from_be_bytes(e[0..2].try_into().unwrap());
+                    let local_addr = IpAddr::V6(Ipv6Addr::new(x1, x2, x3, x4, x5, x6, x7, x8));
+                    let local_port = u16::from_be_bytes(e[0..2].try_into().unwrap());
 
                     let x1 = u16::from_be_bytes(f[0..2].try_into().unwrap());
                     let x2 = u16::from_be_bytes(f[2..4].try_into().unwrap());
@@ -736,36 +736,36 @@ fn ControlThread(
                     let x6 = u16::from_be_bytes(f[10..12].try_into().unwrap());
                     let x7 = u16::from_be_bytes(f[12..14].try_into().unwrap());
                     let x8 = u16::from_be_bytes(f[14..16].try_into().unwrap());
-                    let remoteAddr = IpAddr::V6(Ipv6Addr::new(x1, x2, x3, x4, x5, x6, x7, x8));
-                    let remotePort = u16::from_be_bytes(g[0..2].try_into().unwrap());
+                    let remote_addr = IpAddr::V6(Ipv6Addr::new(x1, x2, x3, x4, x5, x6, x7, x8));
+                    let remote_port = u16::from_be_bytes(g[0..2].try_into().unwrap());
 
-                    let connection = Connection::New(
-                        localAddr,
-                        localPort,
-                        remoteAddr,
-                        remotePort,
+                    let connection = Connection::new(
+                        local_addr,
+                        local_port,
+                        remote_addr,
+                        remote_port,
                         ConnectionType::UDP,
                     );
 
-                    if localAddr == NULL_IPV6 || remoteAddr == NULL_IPV6 {
+                    if local_addr == NULL_IPV6 || remote_addr == NULL_IPV6 {
                         continue;
                     }
 
-                    networkRawStat
-                        .connectionLookupTable
+                    network_raw_stat
+                        .conn_lookup_table
                         .insert(Inode::new(a[9].parse()?), connection);
 
                     'outer4: for device in &devices {
                         for address in &device.addresses {
                             if common::addr_in_network(
-                                &localAddr,
+                                &local_addr,
                                 &address.addr,
                                 &address.netmask.unwrap(),
                             )
                             .unwrap_or(false)
                             {
-                                networkRawStat
-                                    .interfaceNameLookupTable
+                                network_raw_stat
+                                    .iname_lookup_table
                                     .insert(connection, device.name.clone());
                                 break 'outer4;
                             }
@@ -774,61 +774,59 @@ fn ControlThread(
                 }
 
                 // build interface raw stats
-                for (interfaceName, threadData) in &threadDatas {
-                    let mut mutexLock = threadData.lock()?;
+                for (iname, thread_data) in &thread_data {
+                    let mut mutex_lock = thread_data.lock()?;
 
-                    let mut interfaceRawStat = InterfaceRawStat::New(
-                        interfaceName.clone(),
-                        mutexLock.device.desc.clone().unwrap_or(String::new()),
+                    let mut irawstat = InterfaceRawStat::new(
+                        iname.clone(),
+                        mutex_lock.device.desc.clone().unwrap_or(String::new()),
                     );
 
-                    interfaceRawStat.uniConnectionStats = mutexLock
-                        .uniConnectionStats
+                    irawstat.uni_conn_stats = mutex_lock
+                        .uni_conn_stats
                         .take()
                         .unwrap_or(HashMap::new());
 
-                    networkRawStat
-                        .interfaceRawStats
-                        .insert(interfaceName.clone(), interfaceRawStat);
+                    network_raw_stat
+                        .irawstats
+                        .insert(iname.clone(), irawstat);
                 }
 
                 // send networkRawStat out
-                controlDataOutWriteEnd.send(networkRawStat)?;
+                ctrl_data_in_write_end.send(network_raw_stat)?;
             }
             Err(RecvTimeoutError::Timeout) => {}
-            Err(RecvTimeoutError::Disconnected) => {
-                return Err(NetworkStatError::ChannelRecvErr)
-            }
+            Err(RecvTimeoutError::Disconnected) => return Err(NetworkStatError::ChannelRecvErr),
         }
 
         // check and remove any dead thread
-        threadDatas = threadDatas
+        thread_data = thread_data
             .into_iter()
-            .filter(|(_, threadData)| Arc::strong_count(&threadData) == 2)
+            .filter(|(_, thread_data)| Arc::strong_count(&thread_data) == 2)
             .collect();
 
         for device in &devices {
-            let interfaceName = device.name.clone();
+            let iname = device.name.clone();
 
             // spawn new monitor thread if interface is not in monitoring list
-            if !threadDatas.contains_key(&interfaceName) {
-                let threadData = Arc::new(Mutex::new(ThreadData {
+            if !thread_data.contains_key(&iname) {
+                let _thread_data = Arc::new(Mutex::new(ThreadData {
                     device: device.clone(),
-                    uniConnectionStats: None,
+                    uni_conn_stats: None,
                 }));
 
-                threadDatas.insert(interfaceName, Arc::clone(&threadData));
+                thread_data.insert(iname, Arc::clone(&_thread_data));
 
                 // pass the thread data
-                thread::spawn(move || CaptureThread(threadData));
+                thread::spawn(move || capture_thread(_thread_data));
             }
         }
     }
 }
 
-fn CaptureThread(threadData: Arc<Mutex<ThreadData>>) -> Result<(), NetworkStatError> {
+fn capture_thread(thread_data: Arc<Mutex<ThreadData>>) -> Result<(), NetworkStatError> {
     // init capture
-    let device = threadData.lock()?.device.clone();
+    let device = thread_data.lock()?.device.clone();
 
     let mut capture = Capture::from_device(device)?
         .snaplen(
@@ -850,33 +848,33 @@ fn CaptureThread(threadData: Arc<Mutex<ThreadData>>) -> Result<(), NetworkStatEr
     // main loop
     loop {
         // check if control thread want this thread to exit
-        if Arc::strong_count(&threadData) == 1 {
+        if Arc::strong_count(&thread_data) == 1 {
             // exit now
             return Ok(());
         }
 
         match capture.next() {
             Ok(packet) => {
-                let mut mutexLock = threadData.lock()?;
+                let mut mutex_lock = thread_data.lock()?;
 
-                if mutexLock.uniConnectionStats.is_none() {
-                    mutexLock.uniConnectionStats = Some(HashMap::new());
+                if mutex_lock.uni_conn_stats.is_none() {
+                    mutex_lock.uni_conn_stats = Some(HashMap::new());
                 }
 
-                let uniConnectionStat = match GetUniConnectionStat(packet) {
+                let uni_conn_stat = match get_uni_conn_stat(packet) {
                     Ok(stat) => stat,
                     Err(_) => continue,
                 };
 
-                *mutexLock
-                    .uniConnectionStats
+                *mutex_lock
+                    .uni_conn_stats
                     .as_mut()
                     .unwrap()
-                    .entry(uniConnectionStat.uniConnection)
-                    .or_insert(uniConnectionStat) += uniConnectionStat;
+                    .entry(uni_conn_stat.uni_conn)
+                    .or_insert(uni_conn_stat) += uni_conn_stat;
             }
             Err(pcap::Error::TimeoutExpired) => continue,
-            Err(pcapError) => return Err(NetworkStatError::PcapErr(pcapError)),
+            Err(pcap_err) => return Err(NetworkStatError::PcapErr(pcap_err)),
         }
     }
 }
@@ -886,21 +884,25 @@ lazy_static! {
     static ref CONTROL_DATA_IN_READ_END: Mutex<Option<Receiver<NetworkRawStat>>> = Mutex::new(None);
 }
 
-pub fn InitNetworkStatCapture() -> Result<(), NetworkStatError> {
-    let (_controlDataInWriteEnd, controlDataInReadEnd) = mpsc::channel();
-    let (controlDataOutWriteEnd, _controlDataOutReadEnd) = mpsc::channel();
+pub fn init_network_stat_capture() -> Result<(), NetworkStatError> {
+    let (_control_data_in_write_end, control_data_in_read_end) = mpsc::channel();
+    let (controll_data_out_write_end, _control_data_out_read_end) = mpsc::channel();
 
-    *CONTROL_DATA_IN_WRITE_END.lock()? = Some(_controlDataInWriteEnd);
-    *CONTROL_DATA_IN_READ_END.lock()? = Some(_controlDataOutReadEnd);
+    *CONTROL_DATA_IN_WRITE_END.lock()? = Some(_control_data_in_write_end);
+    *CONTROL_DATA_IN_READ_END.lock()? = Some(_control_data_out_read_end);
 
-    thread::spawn(move || ControlThread(controlDataInReadEnd, controlDataOutWriteEnd));
+    thread::spawn(move || control_thread(control_data_in_read_end, controll_data_out_write_end));
 
     Ok(())
 }
 
-pub fn GetNetworkRawStat() -> Result<NetworkRawStat, NetworkStatError> {
+pub fn get_network_rawstat() -> Result<NetworkRawStat, NetworkStatError> {
     // signal to control thread to get data
-    CONTROL_DATA_IN_WRITE_END.lock()?.as_ref().unwrap().send(())?;
+    CONTROL_DATA_IN_WRITE_END
+        .lock()?
+        .as_ref()
+        .unwrap()
+        .send(())?;
 
     // get data from control thread
     Ok(CONTROL_DATA_IN_READ_END.lock()?.as_ref().unwrap().recv()?)
@@ -938,9 +940,7 @@ impl fmt::Display for NetworkStatError {
             Self::ParseIntErr(error) => String::from(format!("Parse integer error: {}", error)),
 
             Self::PcapErr(error) => String::from(format!("Pcap error: {}", error)),
-            Self::UnknownVLANTag(vlanTag) => {
-                String::from(format!("Unknown vlan tag: {}", vlanTag))
-            }
+            Self::UnknownVLANTag(vlan_tag) => String::from(format!("Unknown vlan tag: {}", vlan_tag)),
             Self::UnknownProtocol(protocol) => {
                 String::from(format!("Unknown protocol: {}", protocol))
             }
@@ -956,9 +956,9 @@ impl fmt::Display for NetworkStatError {
             Self::Ipv6PacketVersionErr(version) => {
                 String::from(format!("Ipv6 packet version error: {}", version))
             }
-            Self::Ipv6UnknownOptionalHeaderType(headerType) => String::from(format!(
+            Self::Ipv6UnknownOptionalHeaderType(header_type) => String::from(format!(
                 "Ipv6 unknown optional header error: {}",
-                headerType
+                header_type
             )),
             Self::PoisonMutex => String::from(format!("Mutex poison error")),
             Self::UnsupportedProtocol(protocol) => {
@@ -966,9 +966,7 @@ impl fmt::Display for NetworkStatError {
             }
             Self::IOErr(error) => String::from(format!("IO error: {}", error)),
             Self::CommonErr(error) => String::from(format!("Common error: {}", error)),
-            Self::ConfigErr(configError) => {
-                String::from(format!("Config error: {}", configError))
-            }
+            Self::ConfigErr(config_err) => String::from(format!("Config error: {}", config_err)),
         };
 
         write!(f, "{}", result)
