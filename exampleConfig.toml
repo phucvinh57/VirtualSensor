@@ -2,7 +2,7 @@
 old_kernel = true
 
 listen_addr = "127.0.0.1:6666"
-capture_size_limit = 2048
+capture_size_limit = 4096
 
 # in nano seconds, 1 milliseconds
 control_command_receive_timeout = 1_000_000

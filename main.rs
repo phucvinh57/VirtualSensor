@@ -1,5 +1,3 @@
-#[allow(non_snake_case)]
-#[allow(dead_code)]
 
 mod network_stat;
 mod process;
