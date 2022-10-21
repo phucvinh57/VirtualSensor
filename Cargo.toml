@@ -1,0 +1,34 @@
+[package]
+name = "MonitorDaemon"
+version = "0.1.0"
+edition = "2018"
+build = "build.rs"
+
+
+[profile.release]
+overflow-checks = true
+
+
+[[bin]]
+name = "MonitorDaemon"
+path = "main.rs"
+
+
+[dependencies]
+libc = "*"
+netlink-sys = "*"
+lazy_static = "*"
+pcap = "0.9.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "*"
+config-file = "*"
+
+
+# make cargo use local copy of repos instead
+[source.crates-io]
+replace-with = "vendored-sources"
+
+
+# define where local copy of repos live
+[source.vendored-sources]
+directory = "ThirdPartySourceOriginal"

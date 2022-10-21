@@ -1,0 +1,2 @@
+- run daemon, with config file
+- use nc to connect to daemon to get stats
