@@ -14,10 +14,10 @@ use crate::network_stat::{Connection, NetworkRawStat, UniConnection, UniConnecti
 pub struct Pid(u128);
 
 impl Pid {
-    pub fn New(pid: usize) -> Self {
+    pub fn new(pid: usize) -> Self {
         Self(pid.try_into().unwrap())
     }
-    pub fn Usize(&self) -> usize {
+    pub fn to_usize(&self) -> usize {
         self.0 as usize
     }
 }
@@ -44,7 +44,7 @@ impl fmt::Display for Pid {
 
 impl<'de> Deserialize<'de> for Pid {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Pid, D::Error> {
-        Ok(Pid::New(Deserialize::deserialize(deserializer)?))
+        Ok(Pid::new(Deserialize::deserialize(deserializer)?))
     }
 }
 
@@ -52,7 +52,7 @@ impl<'de> Deserialize<'de> for Pid {
 pub struct Tid(u128);
 
 impl Tid {
-    pub fn New(tid: usize) -> Self {
+    pub fn new(tid: usize) -> Self {
         Self(tid.try_into().unwrap())
     }
 }
@@ -82,60 +82,60 @@ pub struct ConnectionStat {
     connection: Connection,
 
     // packet count
-    packetSent: Count,
-    packetRecv: Count,
+    pack_sent: Count,
+    pack_recv: Count,
 
     // data count in link layer
-    totalDataSent: DataCount,
-    totalDataRecv: DataCount,
+    total_data_sent: DataCount,
+    total_data_recv: DataCount,
 
     // data count in higher level
-    realDataSent: DataCount,
-    realDataRecv: DataCount,
+    real_data_sent: DataCount,
+    real_data_recv: DataCount,
 }
 
 impl ConnectionStat {
-    pub fn New(connection: Connection) -> Self {
+    pub fn new(connection: Connection) -> Self {
         Self {
             connection,
 
-            packetSent: Count::new(0),
-            packetRecv: Count::new(0),
+            pack_sent: Count::new(0),
+            pack_recv: Count::new(0),
 
-            totalDataSent: DataCount::from_byte(0),
-            totalDataRecv: DataCount::from_byte(0),
+            total_data_sent: DataCount::from_byte(0),
+            total_data_recv: DataCount::from_byte(0),
 
-            realDataSent: DataCount::from_byte(0),
-            realDataRecv: DataCount::from_byte(0),
+            real_data_sent: DataCount::from_byte(0),
+            real_data_recv: DataCount::from_byte(0),
         }
     }
 
-    pub fn Connection(&self) -> Connection {
+    pub fn get_connection(&self) -> Connection {
         self.connection
     }
 
-    pub fn PacketSent(&self) -> Count {
-        self.packetSent
+    pub fn get_pack_sent(&self) -> Count {
+        self.pack_sent
     }
 
-    pub fn PacketRecv(&self) -> Count {
-        self.packetRecv
+    pub fn get_pack_recv(&self) -> Count {
+        self.pack_recv
     }
 
-    pub fn TotalDataSent(&self) -> DataCount {
-        self.totalDataSent
+    pub fn get_total_data_sent(&self) -> DataCount {
+        self.total_data_sent
     }
 
-    pub fn TotalDataRecv(&self) -> DataCount {
-        self.totalDataRecv
+    pub fn get_total_data_recv(&self) -> DataCount {
+        self.total_data_recv
     }
 
-    pub fn RealDataSent(&self) -> DataCount {
-        self.realDataSent
+    pub fn get_real_data_sent(&self) -> DataCount {
+        self.real_data_sent
     }
 
-    pub fn RealDataRecv(&self) -> DataCount {
-        self.realDataRecv
+    pub fn get_real_data_recv(&self) -> DataCount {
+        self.real_data_recv
     }
 }
 
@@ -151,14 +151,14 @@ impl Add<Self> for ConnectionStat {
         Self {
             connection: self.connection,
 
-            packetSent: self.packetSent + other.packetSent,
-            packetRecv: self.packetRecv + other.packetRecv,
+            pack_sent: self.pack_sent + other.pack_sent,
+            pack_recv: self.pack_recv + other.pack_recv,
 
-            totalDataSent: self.totalDataSent + other.totalDataSent,
-            totalDataRecv: self.totalDataRecv + other.totalDataRecv,
+            total_data_sent: self.total_data_sent + other.total_data_sent,
+            total_data_recv: self.total_data_recv + other.total_data_recv,
 
-            realDataSent: self.realDataSent + other.realDataSent,
-            realDataRecv: self.realDataRecv + other.realDataRecv,
+            real_data_sent: self.real_data_sent + other.real_data_sent,
+            real_data_recv: self.real_data_recv + other.real_data_recv,
         }
     }
 }
@@ -170,72 +170,73 @@ impl AddAssign<Self> for ConnectionStat {
             "Can't add different connections!"
         );
 
-        self.packetSent += other.packetSent;
-        self.packetRecv += other.packetRecv;
+        self.pack_sent += other.pack_sent;
+        self.pack_recv += other.pack_recv;
 
-        self.totalDataSent += other.totalDataSent;
-        self.totalDataRecv += other.totalDataRecv;
+        self.total_data_sent += other.total_data_sent;
+        self.total_data_recv += other.total_data_recv;
 
-        self.realDataSent += other.realDataSent;
-        self.realDataRecv += other.realDataRecv;
+        self.real_data_sent += other.real_data_sent;
+        self.real_data_recv += other.real_data_recv;
     }
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct InterfaceStat {
-    interfaceName: String,
+    iname: String,
 
     // packet count
-    packetSent: Count,
-    packetRecv: Count,
+    pack_sent: Count,
+    packet_recv: Count,
 
     // data count in link layer
-    totalDataSent: DataCount,
-    totalDataRecv: DataCount,
+    total_data_sent: DataCount,
+    total_data_recv: DataCount,
 
     // data count in higher level
-    realDataSent: DataCount,
-    realDataRecv: DataCount,
+    real_data_sent: DataCount,
+    real_data_recv: DataCount,
 
     // map from Connection to ConnectionStat
-    #[serde(serialize_with = "InterfaceStatConnectionStatsSerialize")]
-    connectionStats: HashMap<Connection, ConnectionStat>,
+    #[serde(serialize_with = "get_istat_conn_stats_serialize")]
+    conn_stats: HashMap<Connection, ConnectionStat>,
 }
 
+#[allow(unused)]
 impl InterfaceStat {
-    pub fn New(interfaceName: &str) -> Self {
+    pub fn new(iname: &str) -> Self {
         Self {
-            interfaceName: String::from(interfaceName),
+            iname: String::from(iname),
 
-            packetSent: Count::new(0),
-            packetRecv: Count::new(0),
+            pack_sent: Count::new(0),
+            packet_recv: Count::new(0),
 
-            totalDataSent: DataCount::from_byte(0),
-            totalDataRecv: DataCount::from_byte(0),
+            total_data_sent: DataCount::from_byte(0),
+            total_data_recv: DataCount::from_byte(0),
 
-            realDataSent: DataCount::from_byte(0),
-            realDataRecv: DataCount::from_byte(0),
+            real_data_sent: DataCount::from_byte(0),
+            real_data_recv: DataCount::from_byte(0),
 
-            connectionStats: HashMap::new(),
+            conn_stats: HashMap::new(),
         }
     }
 
-    pub fn Name(&self) -> String {
-        self.interfaceName.clone()
+    pub fn get_interface_name(&self) -> String {
+        self.iname.clone()
     }
 
-    pub fn AddConnectionStat(&mut self, connectionStat: ConnectionStat) {
-        self.packetSent += connectionStat.PacketSent();
-        self.packetRecv += connectionStat.PacketRecv();
+    pub fn add_conn_stat(&mut self, conn_stat: ConnectionStat) {
+        self.pack_sent += conn_stat.get_pack_sent();
+        self.packet_recv += conn_stat.get_pack_recv();
 
-        self.totalDataSent += connectionStat.TotalDataSent();
-        self.totalDataRecv += connectionStat.TotalDataRecv();
+        self.total_data_sent += conn_stat.get_total_data_sent();
+        self.total_data_recv += conn_stat.get_total_data_recv();
 
-        self.realDataSent += connectionStat.RealDataSent();
-        self.realDataRecv += connectionStat.RealDataRecv();
+        self.real_data_sent += conn_stat.get_real_data_sent();
+        self.real_data_recv += conn_stat.get_real_data_recv();
 
-        self.connectionStats
-            .insert(connectionStat.Connection(), connectionStat);
+        self.conn_stats
+            .insert(conn_stat.get_connection(), conn_stat);
     }
 }
 
@@ -244,31 +245,31 @@ impl Add<Self> for InterfaceStat {
 
     fn add(self, other: Self) -> Self {
         assert!(
-            self.interfaceName == other.interfaceName,
+            self.iname == other.iname,
             "Can't add different interface stats!"
         );
 
-        let mut result = Self::New(&self.interfaceName);
+        let mut result = Self::new(&self.iname);
 
-        result.packetSent = self.packetSent + other.packetSent;
-        result.packetRecv = self.packetRecv + other.packetRecv;
+        result.pack_sent = self.pack_sent + other.pack_sent;
+        result.packet_recv = self.packet_recv + other.packet_recv;
 
-        result.totalDataSent = self.totalDataSent + other.totalDataSent;
-        result.totalDataRecv = self.totalDataRecv + other.totalDataRecv;
+        result.total_data_sent = self.total_data_sent + other.total_data_sent;
+        result.total_data_recv = self.total_data_recv + other.total_data_recv;
 
-        result.realDataSent = self.realDataSent + other.realDataSent;
-        result.realDataRecv = self.realDataRecv + other.realDataRecv;
+        result.real_data_sent = self.real_data_sent + other.real_data_sent;
+        result.real_data_recv = self.real_data_recv + other.real_data_recv;
 
         // merge connectionStats
-        result.connectionStats = self.connectionStats;
+        result.conn_stats = self.conn_stats;
 
-        for (otherConnection, otherConnectionStat) in other.connectionStats {
-            if let Some(connectionStat) = result.connectionStats.get_mut(&otherConnection) {
-                *connectionStat += otherConnectionStat;
+        for (other_conn, other_conn_stat) in other.conn_stats {
+            if let Some(conn_stat) = result.conn_stats.get_mut(&other_conn) {
+                *conn_stat += other_conn_stat;
             } else {
                 result
-                    .connectionStats
-                    .insert(otherConnection, otherConnectionStat);
+                    .conn_stats
+                    .insert(other_conn, other_conn_stat);
             }
         }
 
@@ -279,32 +280,32 @@ impl Add<Self> for InterfaceStat {
 impl AddAssign<Self> for InterfaceStat {
     fn add_assign(&mut self, other: Self) {
         assert!(
-            self.interfaceName == other.interfaceName,
+            self.iname == other.iname,
             "Can't add different interface stats!"
         );
 
-        self.packetSent += other.packetSent;
-        self.packetRecv += other.packetRecv;
+        self.pack_sent += other.pack_sent;
+        self.packet_recv += other.packet_recv;
 
-        self.totalDataSent += other.totalDataSent;
-        self.totalDataRecv += other.totalDataRecv;
+        self.total_data_sent += other.total_data_sent;
+        self.total_data_recv += other.total_data_recv;
 
-        self.realDataSent += other.realDataSent;
-        self.realDataRecv += other.realDataRecv;
+        self.real_data_sent += other.real_data_sent;
+        self.real_data_recv += other.real_data_recv;
 
         // merge connectionStats
-        for (otherConnection, otherConnectionStat) in other.connectionStats {
-            if let Some(connectionStat) = self.connectionStats.get_mut(&otherConnection) {
-                *connectionStat += otherConnectionStat;
+        for (other_conn, other_conn_stat) in other.conn_stats {
+            if let Some(conn_stat) = self.conn_stats.get_mut(&other_conn) {
+                *conn_stat += other_conn_stat;
             } else {
-                self.connectionStats
-                    .insert(otherConnection, otherConnectionStat);
+                self.conn_stats
+                    .insert(other_conn, other_conn_stat);
             }
         }
     }
 }
 
-fn InterfaceStatConnectionStatsSerialize<S: Serializer>(
+fn get_istat_conn_stats_serialize<S: Serializer>(
     input: &HashMap<Connection, ConnectionStat>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
@@ -314,59 +315,59 @@ fn InterfaceStatConnectionStatsSerialize<S: Serializer>(
 #[derive(Debug, Clone, Serialize)]
 pub struct NetworkStat {
     // packet count
-    packetSent: Count,
-    packetRecv: Count,
+    pack_sent: Count,
+    pack_recv: Count,
 
     // data count in link layer
-    totalDataSent: DataCount,
-    totalDataRecv: DataCount,
+    total_data_sent: DataCount,
+    total_data_recv: DataCount,
 
     // data count in higher level
-    realDataSent: DataCount,
-    realDataRecv: DataCount,
+    real_data_sent: DataCount,
+    real_data_recv: DataCount,
 
     // map from InterfaceName to InterfaceStat
-    #[serde(serialize_with = "NetworkStatInterfaceStatsSerialize")]
-    interfaceStats: HashMap<String, InterfaceStat>,
+    #[serde(serialize_with = "get_netstat_istats_serialize")]
+    istats: HashMap<String, InterfaceStat>,
 }
 
 impl NetworkStat {
-    pub fn New() -> Self {
+    pub fn new() -> Self {
         Self {
-            packetSent: Count::new(0),
-            packetRecv: Count::new(0),
+            pack_sent: Count::new(0),
+            pack_recv: Count::new(0),
 
-            totalDataSent: DataCount::from_byte(0),
-            totalDataRecv: DataCount::from_byte(0),
+            total_data_sent: DataCount::from_byte(0),
+            total_data_recv: DataCount::from_byte(0),
 
-            realDataSent: DataCount::from_byte(0),
-            realDataRecv: DataCount::from_byte(0),
+            real_data_sent: DataCount::from_byte(0),
+            real_data_recv: DataCount::from_byte(0),
 
-            interfaceStats: HashMap::new(),
+            istats: HashMap::new(),
         }
     }
 
-    pub fn AddConnectionStat(&mut self, interfaceName: &str, connectionStat: ConnectionStat) {
-        self.packetSent += connectionStat.PacketSent();
-        self.packetRecv += connectionStat.PacketRecv();
+    pub fn add_conn_stat(&mut self, iname: &str, conn_stat: ConnectionStat) {
+        self.pack_sent += conn_stat.get_pack_sent();
+        self.pack_recv += conn_stat.get_pack_recv();
 
-        self.totalDataSent += connectionStat.TotalDataSent();
-        self.totalDataRecv += connectionStat.TotalDataRecv();
+        self.total_data_sent += conn_stat.get_total_data_sent();
+        self.total_data_recv += conn_stat.get_total_data_recv();
 
-        self.realDataSent += connectionStat.RealDataSent();
-        self.realDataRecv += connectionStat.RealDataRecv();
+        self.real_data_sent += conn_stat.get_real_data_sent();
+        self.real_data_recv += conn_stat.get_real_data_recv();
 
         // create interface stat if not existed yet
-        if !self.interfaceStats.contains_key(interfaceName) {
-            self.interfaceStats
-                .insert(interfaceName.to_string(), InterfaceStat::New(interfaceName));
+        if !self.istats.contains_key(iname) {
+            self.istats
+                .insert(iname.to_string(), InterfaceStat::new(iname));
         }
 
         // insert the stat to interface stat
-        self.interfaceStats
-            .get_mut(interfaceName)
+        self.istats
+            .get_mut(iname)
             .unwrap()
-            .AddConnectionStat(connectionStat);
+            .add_conn_stat(conn_stat);
     }
 }
 
@@ -374,27 +375,27 @@ impl Add<Self> for NetworkStat {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
-        let mut result = Self::New();
+        let mut result = Self::new();
 
-        result.packetSent = self.packetSent + other.packetSent;
-        result.packetRecv = self.packetRecv + other.packetRecv;
+        result.pack_sent = self.pack_sent + other.pack_sent;
+        result.pack_recv = self.pack_recv + other.pack_recv;
 
-        result.totalDataSent = self.totalDataSent + other.totalDataSent;
-        result.totalDataRecv = self.totalDataRecv + other.totalDataRecv;
+        result.total_data_sent = self.total_data_sent + other.total_data_sent;
+        result.total_data_recv = self.total_data_recv + other.total_data_recv;
 
-        result.realDataSent = self.realDataSent + other.realDataSent;
-        result.realDataRecv = self.realDataRecv + other.realDataRecv;
+        result.real_data_sent = self.real_data_sent + other.real_data_sent;
+        result.real_data_recv = self.real_data_recv + other.real_data_recv;
 
         // merge interfaceStats
-        result.interfaceStats = self.interfaceStats;
+        result.istats = self.istats;
 
-        for (otherInterfaceName, otherInterfaceStat) in other.interfaceStats {
-            if let Some(interfaceStat) = result.interfaceStats.get_mut(&otherInterfaceName) {
-                *interfaceStat += otherInterfaceStat;
+        for (other_iname, other_istat) in other.istats {
+            if let Some(istat) = result.istats.get_mut(&other_iname) {
+                *istat += other_istat;
             } else {
                 result
-                    .interfaceStats
-                    .insert(otherInterfaceName, otherInterfaceStat);
+                    .istats
+                    .insert(other_iname, other_istat);
             }
         }
 
@@ -404,28 +405,28 @@ impl Add<Self> for NetworkStat {
 
 impl AddAssign<Self> for NetworkStat {
     fn add_assign(&mut self, other: Self) {
-        self.packetSent += other.packetSent;
-        self.packetRecv += other.packetRecv;
+        self.pack_sent += other.pack_sent;
+        self.pack_recv += other.pack_recv;
 
-        self.totalDataSent += other.totalDataSent;
-        self.totalDataRecv += other.totalDataRecv;
+        self.total_data_sent += other.total_data_sent;
+        self.total_data_recv += other.total_data_recv;
 
-        self.realDataSent += other.realDataSent;
-        self.realDataRecv += other.realDataRecv;
+        self.real_data_sent += other.real_data_sent;
+        self.real_data_recv += other.real_data_recv;
 
         // merge interfaceStats
-        for (otherInterfaceName, otherInterfaceStat) in other.interfaceStats {
-            if let Some(interfaceStat) = self.interfaceStats.get_mut(&otherInterfaceName) {
-                *interfaceStat += otherInterfaceStat;
+        for (other_iname, other_istat) in other.istats {
+            if let Some(istat) = self.istats.get_mut(&other_iname) {
+                *istat += other_istat;
             } else {
-                self.interfaceStats
-                    .insert(otherInterfaceName, otherInterfaceStat);
+                self.istats
+                    .insert(other_iname, other_istat);
             }
         }
     }
 }
 
-fn NetworkStatInterfaceStatsSerialize<S: Serializer>(
+fn get_netstat_istats_serialize<S: Serializer>(
     input: &HashMap<String, InterfaceStat>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
@@ -436,56 +437,56 @@ fn NetworkStatInterfaceStatsSerialize<S: Serializer>(
 pub struct ThreadStat {
     timestamp: Timestamp,
 
-    totalSystemCpuTime: TimeCount,
-    totalUserCpuTime: TimeCount,
-    totalCpuTime: TimeCount,
+    total_system_cpu_time: TimeCount,
+    total_user_cpu_time: TimeCount,
+    total_cpu_time: TimeCount,
 
-    totalIORead: DataCount,
-    totalIOWrite: DataCount,
+    total_io_read: DataCount,
+    total_io_write: DataCount,
 
-    totalBlockIORead: DataCount,
-    totalBlockIOWrite: DataCount,
+    total_block_io_read: DataCount,
+    total_block_io_write: DataCount,
 }
 
 impl ThreadStat {
-    pub fn New() -> Self {
+    pub fn new() -> Self {
         Self {
             timestamp: Timestamp::get_curr_timestamp(),
 
-            totalSystemCpuTime: TimeCount::from_secs(0),
-            totalUserCpuTime: TimeCount::from_secs(0),
-            totalCpuTime: TimeCount::from_secs(0),
+            total_system_cpu_time: TimeCount::from_secs(0),
+            total_user_cpu_time: TimeCount::from_secs(0),
+            total_cpu_time: TimeCount::from_secs(0),
 
-            totalIORead: DataCount::from_byte(0),
-            totalIOWrite: DataCount::from_byte(0),
+            total_io_read: DataCount::from_byte(0),
+            total_io_write: DataCount::from_byte(0),
 
-            totalBlockIORead: DataCount::from_byte(0),
-            totalBlockIOWrite: DataCount::from_byte(0),
+            total_block_io_read: DataCount::from_byte(0),
+            total_block_io_write: DataCount::from_byte(0),
         }
     }
 
-    pub fn TotalSystemCpuTime(&self) -> TimeCount {
-        self.totalSystemCpuTime
+    pub fn get_total_system_cpu_time(&self) -> TimeCount {
+        self.total_system_cpu_time
     }
-    pub fn TotalUserCpuTime(&self) -> TimeCount {
-        self.totalUserCpuTime
+    pub fn get_total_user_cpu_time(&self) -> TimeCount {
+        self.total_user_cpu_time
     }
-    pub fn TotalCpuTime(&self) -> TimeCount {
-        self.totalCpuTime
-    }
-
-    pub fn TotalIORead(&self) -> DataCount {
-        self.totalIORead
-    }
-    pub fn TotalIOWrite(&self) -> DataCount {
-        self.totalIOWrite
+    pub fn get_total_cpu_time(&self) -> TimeCount {
+        self.total_cpu_time
     }
 
-    pub fn TotalBlockIORead(&self) -> DataCount {
-        self.totalBlockIORead
+    pub fn get_total_io_read(&self) -> DataCount {
+        self.total_io_read
     }
-    pub fn TotalBlockIOWrite(&self) -> DataCount {
-        self.totalBlockIOWrite
+    pub fn get_total_io_write(&self) -> DataCount {
+        self.total_io_write
+    }
+
+    pub fn get_total_block_io_read(&self) -> DataCount {
+        self.total_block_io_read
+    }
+    pub fn get_total_block_io_write(&self) -> DataCount {
+        self.total_block_io_write
     }
 }
 
@@ -493,43 +494,43 @@ impl ThreadStat {
 pub struct ProcessStat {
     timestamp: Timestamp,
 
-    totalSystemCpuTime: TimeCount,
-    totalUserCpuTime: TimeCount,
-    totalCpuTime: TimeCount,
+    total_system_cpu_time: TimeCount,
+    total_user_cpu_time: TimeCount,
+    total_cpu_time: TimeCount,
 
-    totalRss: DataCount,
-    totalVss: DataCount,
-    totalSwap: DataCount,
+    total_rss: DataCount,
+    total_vss: DataCount,
+    total_swap: DataCount,
 
-    totalIORead: DataCount,
-    totalIOWrite: DataCount,
+    total_io_read: DataCount,
+    total_io_write: DataCount,
 
-    totalBlockIORead: DataCount,
-    totalBlockIOWrite: DataCount,
+    total_block_io_read: DataCount,
+    total_block_io_write: DataCount,
 
-    networkStat: NetworkStat,
+    netstat: NetworkStat,
 }
 
 impl ProcessStat {
-    pub fn New() -> Self {
+    pub fn new() -> Self {
         Self {
             timestamp: Timestamp::get_curr_timestamp(),
 
-            totalSystemCpuTime: TimeCount::from_secs(0),
-            totalUserCpuTime: TimeCount::from_secs(0),
-            totalCpuTime: TimeCount::from_secs(0),
+            total_system_cpu_time: TimeCount::from_secs(0),
+            total_user_cpu_time: TimeCount::from_secs(0),
+            total_cpu_time: TimeCount::from_secs(0),
 
-            totalRss: DataCount::from_byte(0),
-            totalVss: DataCount::from_byte(0),
-            totalSwap: DataCount::from_byte(0),
+            total_rss: DataCount::from_byte(0),
+            total_vss: DataCount::from_byte(0),
+            total_swap: DataCount::from_byte(0),
 
-            totalIORead: DataCount::from_byte(0),
-            totalIOWrite: DataCount::from_byte(0),
+            total_io_read: DataCount::from_byte(0),
+            total_io_write: DataCount::from_byte(0),
 
-            totalBlockIORead: DataCount::from_byte(0),
-            totalBlockIOWrite: DataCount::from_byte(0),
+            total_block_io_read: DataCount::from_byte(0),
+            total_block_io_write: DataCount::from_byte(0),
 
-            networkStat: NetworkStat::New(),
+            netstat: NetworkStat::new(),
         }
     }
 }
@@ -541,21 +542,21 @@ impl Add<Self> for ProcessStat {
         Self {
             timestamp: self.timestamp,
 
-            totalSystemCpuTime: self.totalSystemCpuTime + other.totalSystemCpuTime,
-            totalUserCpuTime: self.totalUserCpuTime + other.totalUserCpuTime,
-            totalCpuTime: self.totalCpuTime + other.totalCpuTime,
+            total_system_cpu_time: self.total_system_cpu_time + other.total_system_cpu_time,
+            total_user_cpu_time: self.total_user_cpu_time + other.total_user_cpu_time,
+            total_cpu_time: self.total_cpu_time + other.total_cpu_time,
 
-            totalRss: self.totalRss + other.totalRss,
-            totalVss: self.totalVss + other.totalVss,
-            totalSwap: self.totalSwap + other.totalSwap,
+            total_rss: self.total_rss + other.total_rss,
+            total_vss: self.total_vss + other.total_vss,
+            total_swap: self.total_swap + other.total_swap,
 
-            totalIORead: self.totalIORead + other.totalIORead,
-            totalIOWrite: self.totalIOWrite + other.totalIOWrite,
+            total_io_read: self.total_io_read + other.total_io_read,
+            total_io_write: self.total_io_write + other.total_io_write,
 
-            totalBlockIORead: self.totalBlockIORead + other.totalBlockIORead,
-            totalBlockIOWrite: self.totalBlockIOWrite + other.totalBlockIOWrite,
+            total_block_io_read: self.total_block_io_read + other.total_block_io_read,
+            total_block_io_write: self.total_block_io_write + other.total_block_io_write,
 
-            networkStat: self.networkStat + other.networkStat,
+            netstat: self.netstat + other.netstat,
         }
     }
 }
@@ -567,56 +568,56 @@ impl Add<ThreadStat> for ProcessStat {
         Self {
             timestamp: self.timestamp,
 
-            totalSystemCpuTime: self.totalSystemCpuTime + other.TotalSystemCpuTime(),
-            totalUserCpuTime: self.totalUserCpuTime + other.TotalUserCpuTime(),
-            totalCpuTime: self.totalCpuTime + other.TotalCpuTime(),
+            total_system_cpu_time: self.total_system_cpu_time + other.get_total_system_cpu_time(),
+            total_user_cpu_time: self.total_user_cpu_time + other.get_total_user_cpu_time(),
+            total_cpu_time: self.total_cpu_time + other.get_total_cpu_time(),
 
-            totalRss: self.totalRss,
-            totalVss: self.totalVss,
-            totalSwap: self.totalSwap,
+            total_rss: self.total_rss,
+            total_vss: self.total_vss,
+            total_swap: self.total_swap,
 
-            totalIORead: self.totalIORead + other.TotalIORead(),
-            totalIOWrite: self.totalIOWrite + other.TotalIOWrite(),
+            total_io_read: self.total_io_read + other.get_total_io_read(),
+            total_io_write: self.total_io_write + other.get_total_io_write(),
 
-            totalBlockIORead: self.totalBlockIORead + other.TotalBlockIORead(),
-            totalBlockIOWrite: self.totalBlockIOWrite + other.TotalBlockIOWrite(),
+            total_block_io_read: self.total_block_io_read + other.get_total_block_io_read(),
+            total_block_io_write: self.total_block_io_write + other.get_total_block_io_write(),
 
-            networkStat: self.networkStat,
+            netstat: self.netstat,
         }
     }
 }
 
 impl AddAssign<Self> for ProcessStat {
     fn add_assign(&mut self, other: Self) {
-        self.totalSystemCpuTime += other.totalSystemCpuTime;
-        self.totalUserCpuTime += other.totalUserCpuTime;
-        self.totalCpuTime += other.totalCpuTime;
+        self.total_system_cpu_time += other.total_system_cpu_time;
+        self.total_user_cpu_time += other.total_user_cpu_time;
+        self.total_cpu_time += other.total_cpu_time;
 
-        self.totalRss += other.totalRss;
-        self.totalVss += other.totalVss;
-        self.totalSwap += other.totalSwap;
+        self.total_rss += other.total_rss;
+        self.total_vss += other.total_vss;
+        self.total_swap += other.total_swap;
 
-        self.totalIORead += other.totalIORead;
-        self.totalIOWrite += other.totalIOWrite;
+        self.total_io_read += other.total_io_read;
+        self.total_io_write += other.total_io_write;
 
-        self.totalBlockIORead += other.totalBlockIORead;
-        self.totalBlockIOWrite += other.totalBlockIOWrite;
+        self.total_block_io_read += other.total_block_io_read;
+        self.total_block_io_write += other.total_block_io_write;
 
-        self.networkStat += other.networkStat;
+        self.netstat += other.netstat;
     }
 }
 
 impl AddAssign<ThreadStat> for ProcessStat {
     fn add_assign(&mut self, other: ThreadStat) {
-        self.totalSystemCpuTime += other.TotalSystemCpuTime();
-        self.totalUserCpuTime += other.TotalUserCpuTime();
-        self.totalCpuTime += other.TotalCpuTime();
+        self.total_system_cpu_time += other.get_total_system_cpu_time();
+        self.total_user_cpu_time += other.get_total_user_cpu_time();
+        self.total_cpu_time += other.get_total_cpu_time();
 
-        self.totalIORead += other.TotalIORead();
-        self.totalIOWrite += other.TotalIOWrite();
+        self.total_io_read += other.get_total_io_read();
+        self.total_io_write += other.get_total_io_write();
 
-        self.totalBlockIORead += other.TotalBlockIORead();
-        self.totalBlockIOWrite += other.TotalBlockIOWrite();
+        self.total_block_io_read += other.get_total_block_io_read();
+        self.total_block_io_write += other.get_total_block_io_write();
     }
 }
 
@@ -627,56 +628,57 @@ pub struct Thread {
     pid: Pid,
 
     // ids outside namespace
-    realTid: Tid,
-    realPid: Pid,
+    real_tid: Tid,
+    real_pid: Pid,
 
     // this thread stat
     stat: ThreadStat,
 }
 
+#[allow(unused)]
 impl Thread {
-    pub fn New(tid: Tid, pid: Pid, realTid: Tid, realPid: Pid) -> Self {
+    pub fn new(tid: Tid, pid: Pid, real_tid: Tid, real_pid: Pid) -> Self {
         Self {
             tid,
             pid,
 
-            realTid,
-            realPid,
+            real_tid,
+            real_pid,
 
-            stat: ThreadStat::New(),
+            stat: ThreadStat::new(),
         }
     }
 
-    pub fn Tid(&self) -> Tid {
+    pub fn get_tid(&self) -> Tid {
         self.tid
     }
-    pub fn Pid(&self) -> Pid {
+    pub fn get_pid(&self) -> Pid {
         self.pid
     }
 
-    pub fn RealTid(&self) -> Tid {
-        self.realTid
+    pub fn get_real_tid(&self) -> Tid {
+        self.real_tid
     }
-    pub fn RealPid(&self) -> Pid {
-        self.realPid
+    pub fn get_real_pid(&self) -> Pid {
+        self.real_pid
     }
 
     // update this thread stat, and return a copy of it
-    pub fn GetStat(
+    pub fn get_stat(
         &mut self,
-        taskStatsConnection: &mut TaskStatsConnection,
+        taskstats_conn: &mut TaskStatsConnection,
     ) -> Result<ThreadStat, ProcessError> {
-        let threadTaskStats = taskStatsConnection.GetThreadTaskStats(self.realTid)?;
+        let thread_taskstats = taskstats_conn.get_thread_taskstats(self.real_tid)?;
 
-        self.stat.totalSystemCpuTime = threadTaskStats.systemCpuTime;
-        self.stat.totalUserCpuTime = threadTaskStats.userCpuTime;
-        self.stat.totalCpuTime = threadTaskStats.systemCpuTime + threadTaskStats.userCpuTime;
+        self.stat.total_system_cpu_time = thread_taskstats.systemCpuTime;
+        self.stat.total_user_cpu_time = thread_taskstats.userCpuTime;
+        self.stat.total_cpu_time = thread_taskstats.systemCpuTime + thread_taskstats.userCpuTime;
 
-        self.stat.totalIORead = threadTaskStats.ioRead;
-        self.stat.totalIOWrite = threadTaskStats.ioWrite;
+        self.stat.total_io_read = thread_taskstats.ioRead;
+        self.stat.total_io_write = thread_taskstats.ioWrite;
 
-        self.stat.totalBlockIORead = threadTaskStats.blockIORead;
-        self.stat.totalBlockIOWrite = threadTaskStats.blockIOWrite;
+        self.stat.total_block_io_read = thread_taskstats.blockIORead;
+        self.stat.total_block_io_write = thread_taskstats.blockIOWrite;
 
         Ok(self.stat)
     }
@@ -686,43 +688,43 @@ impl Thread {
 pub struct Process {
     // ids inside namespace
     pid: Pid,
-    parentPid: Pid,
+    parent_pid: Pid,
 
     uid: Uid,
-    effectiveUid: Uid,
-    savedUid: Uid,
-    fsUid: Uid,
+    effective_uid: Uid,
+    saved_uid: Uid,
+    fs_uid: Uid,
 
     gid: Gid,
-    effectiveGid: Gid,
-    savedGid: Gid,
-    fsGid: Gid,
+    effective_gid: Gid,
+    saved_gid: Gid,
+    fs_gid: Gid,
 
     // ids outside namespace
-    realPid: Pid,
-    realParentPid: Pid,
+    real_pid: Pid,
+    real_parent_pid: Pid,
 
-    realUid: Uid,
-    realEffectiveUid: Uid,
-    realSavedUid: Uid,
-    realFsUid: Uid,
+    real_uid: Uid,
+    real_effective_uid: Uid,
+    real_saved_uid: Uid,
+    real_fs_uid: Uid,
 
-    realGid: Gid,
-    realEffectiveGid: Gid,
-    realSavedGid: Gid,
-    realFsGid: Gid,
+    real_gid: Gid,
+    real_effective_gid: Gid,
+    real_saved_gid: Gid,
+    real_fs_gid: Gid,
 
-    executionPath: String,
+    exec_path: String,
     command: String,
 
     // accumulated thread stat of all threads of this process
     stat: ProcessStat,
 
     // accumulate process stat of all child process
-    accumulatedChildsStat: ProcessStat,
+    accumulated_childs_stat: ProcessStat,
 
     // stats + accumulatedChildsStats
-    accumulatedStat: ProcessStat,
+    accumulated_stat: ProcessStat,
 
     // list of all threads
     threads: Vec<Thread>,
@@ -731,151 +733,152 @@ pub struct Process {
     childs: Vec<Process>,
 }
 
+#[allow(unused)]
 impl Process {
-    pub fn New(
+    pub fn new(
         pid: Pid,
-        parentPid: Pid,
+        parent_pid: Pid,
         uid: Uid,
-        effectiveUid: Uid,
-        savedUid: Uid,
-        fsUid: Uid,
+        effective_uid: Uid,
+        saved_uid: Uid,
+        fs_uid: Uid,
         gid: Gid,
-        effectiveGid: Gid,
-        savedGid: Gid,
-        fsGid: Gid,
-        realPid: Pid,
-        realParentPid: Pid,
-        realUid: Uid,
-        realEffectiveUid: Uid,
-        realSavedUid: Uid,
-        realFsUid: Uid,
-        realGid: Gid,
-        realEffectiveGid: Gid,
-        realSavedGid: Gid,
-        realFsGid: Gid,
-        executionPath: String,
+        effective_gid: Gid,
+        saved_gid: Gid,
+        fs_gid: Gid,
+        real_pid: Pid,
+        real_parent_pid: Pid,
+        real_uid: Uid,
+        real_effective_uid: Uid,
+        real_saved_uid: Uid,
+        real_fs_uid: Uid,
+        real_gid: Gid,
+        real_effective_gid: Gid,
+        real_saved_gid: Gid,
+        real_fs_gid: Gid,
+        exec_path: String,
         command: String,
     ) -> Self {
         Self {
             pid,
-            parentPid,
+            parent_pid,
 
             uid,
-            effectiveUid,
-            savedUid,
-            fsUid,
+            effective_uid,
+            saved_uid,
+            fs_uid,
 
             gid,
-            effectiveGid,
-            savedGid,
-            fsGid,
+            effective_gid,
+            saved_gid,
+            fs_gid,
 
-            realPid,
-            realParentPid,
+            real_pid,
+            real_parent_pid,
 
-            realUid,
-            realEffectiveUid,
-            realSavedUid,
-            realFsUid,
+            real_uid,
+            real_effective_uid,
+            real_saved_uid,
+            real_fs_uid,
 
-            realGid,
-            realEffectiveGid,
-            realSavedGid,
-            realFsGid,
+            real_gid,
+            real_effective_gid,
+            real_saved_gid,
+            real_fs_gid,
 
-            executionPath,
+            exec_path,
             command,
 
-            stat: ProcessStat::New(),
-            accumulatedChildsStat: ProcessStat::New(),
-            accumulatedStat: ProcessStat::New(),
+            stat: ProcessStat::new(),
+            accumulated_childs_stat: ProcessStat::new(),
+            accumulated_stat: ProcessStat::new(),
             threads: Vec::new(),
             childs: Vec::new(),
         }
     }
 
-    pub fn Pid(&self) -> Pid {
+    pub fn get_pid(&self) -> Pid {
         self.pid
     }
-    pub fn ParentPid(&self) -> Pid {
-        self.parentPid
+    pub fn get_parent_pid(&self) -> Pid {
+        self.parent_pid
     }
 
-    pub fn RealPid(&self) -> Pid {
-        self.realPid
+    pub fn get_real_pid(&self) -> Pid {
+        self.real_pid
     }
-    pub fn RealParentPid(&self) -> Pid {
-        self.realParentPid
-    }
-
-    pub fn RealUid(&self) -> Uid {
-        self.realUid
-    }
-    pub fn RealEffectiveUid(&self) -> Uid {
-        self.realEffectiveUid
-    }
-    pub fn RealSavedUid(&self) -> Uid {
-        self.realSavedUid
-    }
-    pub fn RealFsUid(&self) -> Uid {
-        self.realFsUid
+    pub fn get_real_parent_pid(&self) -> Pid {
+        self.real_parent_pid
     }
 
-    pub fn RealGid(&self) -> Gid {
-        self.realGid
+    pub fn get_real_uid(&self) -> Uid {
+        self.real_uid
     }
-    pub fn RealEffectiveGid(&self) -> Gid {
-        self.realEffectiveGid
+    pub fn get_real_effective_uid(&self) -> Uid {
+        self.real_effective_uid
     }
-    pub fn RealSavedGid(&self) -> Gid {
-        self.realSavedGid
+    pub fn get_real_saved_uid(&self) -> Uid {
+        self.real_saved_uid
     }
-    pub fn RealFsGid(&self) -> Gid {
-        self.realFsGid
+    pub fn get_real_fs_uid(&self) -> Uid {
+        self.real_fs_uid
+    }
+
+    pub fn get_real_gid(&self) -> Gid {
+        self.real_gid
+    }
+    pub fn get_real_effective_gid(&self) -> Gid {
+        self.real_effective_gid
+    }
+    pub fn get_real_saved_gid(&self) -> Gid {
+        self.real_saved_gid
+    }
+    pub fn get_real_fs_gid(&self) -> Gid {
+        self.real_fs_gid
     }
 
     /// Build process tree, include all threads and childs
-    pub fn BuildProcessTree(
+    pub fn build_proc_tree(
         &mut self,
-        taskStatsConnection: &mut TaskStatsConnection,
-        networkRawStat: &mut NetworkRawStat,
+        taskstats_conn: &mut TaskStatsConnection,
+        net_rawstat: &mut NetworkRawStat,
     ) -> Result<ProcessStat, ProcessError> {
         // get global config
-        let globalConfig = config::get_glob_conf().unwrap();
+        let glob_conf = config::get_glob_conf().unwrap();
 
         // get memory usage
-        let memData = fs::read_to_string(format!("/proc/{}/status", self.realPid))?;
-        let memData: Vec<&str> = memData.lines().collect();
+        let mem_data = fs::read_to_string(format!("/proc/{}/status", self.real_pid))?;
+        let mem_data: Vec<&str> = mem_data.lines().collect();
 
-        let (vss, rss, swap) = if globalConfig.is_old_kernel() {
+        let (vss, rss, swap) = if glob_conf.is_old_kernel() {
             (
-                memData[13].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
-                memData[17].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
-                memData[26].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+                mem_data[13].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+                mem_data[17].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+                mem_data[26].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
             )
         } else {
             (
-                memData[17].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
-                memData[21].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
-                memData[30].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+                mem_data[17].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+                mem_data[21].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+                mem_data[30].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
             )
         };
 
-        self.stat.totalVss += DataCount::from_kb(vss);
-        self.stat.totalRss += DataCount::from_kb(rss);
-        self.stat.totalSwap += DataCount::from_kb(swap);
+        self.stat.total_vss += DataCount::from_kb(vss);
+        self.stat.total_rss += DataCount::from_kb(rss);
+        self.stat.total_swap += DataCount::from_kb(swap);
 
         // build network stat
 
         // get socket inode list
         let mut inodes = Vec::new();
 
-        let fdDir = match fs::read_dir(format!("/proc/{}/fd", self.realPid)) {
+        let fd_dir = match fs::read_dir(format!("/proc/{}/fd", self.real_pid)) {
             Ok(fd) => fd,
-            Err(err) => return Err(ProcessError::IO_ERROR(err)),
+            Err(err) => return Err(ProcessError::IOErr(err)),
         };
 
-        for fd in fdDir {
+        for fd in fd_dir {
             let fd = fd.unwrap();
 
             if let Ok(link) = fd.path().read_link() {
@@ -888,13 +891,13 @@ impl Process {
 
         // match inode to uniconnection stat
         for inode in inodes {
-            if let Some(connection) = networkRawStat.LookupConnection(&inode) {
+            if let Some(connection) = net_rawstat.LookupConnection(&inode) {
                 let connection = connection.clone();
 
-                if let Some(interfaceName) = networkRawStat.LookupInterfaceName(&connection) {
-                    let interfaceName = interfaceName.to_string();
+                if let Some(iname) = net_rawstat.LookupInterfaceName(&connection) {
+                    let iname = iname.to_string();
 
-                    let uniConnection = UniConnection::New(
+                    let uni_conn = UniConnection::New(
                         connection.LocalAddr(),
                         connection.LocalPort(),
                         connection.RemoteAddr(),
@@ -902,7 +905,7 @@ impl Process {
                         connection.ConnectionType(),
                     );
 
-                    let reverseUniConnection = UniConnection::New(
+                    let reverse_uni_conn = UniConnection::New(
                         connection.RemoteAddr(),
                         connection.RemotePort(),
                         connection.LocalAddr(),
@@ -911,144 +914,145 @@ impl Process {
                     );
 
                     // get interface raw stats
-                    if let Some(interfaceRawStat) =
-                        networkRawStat.GetInterfaceRawStat(&interfaceName)
+                    if let Some(irawstat) =
+                        net_rawstat.get_irawstat(&iname)
                     {
                         // get 2 uniconnection stats from interface raw stat
-                        let uniConnectionStat = interfaceRawStat
-                            .GetUniConnectionStat(&uniConnection)
-                            .unwrap_or(&UniConnectionStat::New(uniConnection))
+                        let uni_conn_stat = irawstat
+                            .get_uni_conn_stat(&uni_conn)
+                            .unwrap_or(&UniConnectionStat::New(uni_conn))
                             .clone();
 
-                        let reverseUniConnectionStat = interfaceRawStat
-                            .GetUniConnectionStat(&reverseUniConnection)
-                            .unwrap_or(&UniConnectionStat::New(reverseUniConnection))
+                        let reverse_uni_conn_stat = irawstat
+                            .get_uni_conn_stat(&reverse_uni_conn)
+                            .unwrap_or(&UniConnectionStat::New(reverse_uni_conn))
                             .clone();
 
                         // make new connection stat
-                        let mut connectionStat = ConnectionStat::New(connection.clone());
+                        let mut conn_stat = ConnectionStat::new(connection.clone());
 
-                        connectionStat.packetSent = uniConnectionStat.PacketCount();
-                        connectionStat.packetRecv = reverseUniConnectionStat.PacketCount();
+                        conn_stat.pack_sent = uni_conn_stat.PacketCount();
+                        conn_stat.pack_recv = reverse_uni_conn_stat.PacketCount();
 
-                        connectionStat.totalDataSent = uniConnectionStat.TotalDataCount();
-                        connectionStat.totalDataRecv = reverseUniConnectionStat.TotalDataCount();
+                        conn_stat.total_data_sent = uni_conn_stat.TotalDataCount();
+                        conn_stat.total_data_recv = reverse_uni_conn_stat.TotalDataCount();
 
-                        connectionStat.realDataSent = uniConnectionStat.RealDataCount();
-                        connectionStat.realDataRecv = reverseUniConnectionStat.RealDataCount();
+                        conn_stat.real_data_sent = uni_conn_stat.RealDataCount();
+                        conn_stat.real_data_recv = reverse_uni_conn_stat.RealDataCount();
 
                         // add new connection stat to interface stat
                         self.stat
-                            .networkStat
-                            .AddConnectionStat(&interfaceName, connectionStat);
+                            .netstat
+                            .add_conn_stat(&iname, conn_stat);
                     }
                 }
             }
         }
 
         // update threads list
-        let taskDir = match fs::read_dir(format!("/proc/{}/task", self.realPid)) {
+        let task_dir = match fs::read_dir(format!("/proc/{}/task", self.real_pid)) {
             Ok(dir) => dir,
-            Err(err) => return Err(ProcessError::IO_ERROR(err)),
+            Err(err) => return Err(ProcessError::IOErr(err)),
         };
 
-        for threadDir in taskDir {
-            let threadDir = threadDir.unwrap();
+        for thread_dir in task_dir {
+            let thread_dir = thread_dir.unwrap();
 
-            if threadDir.file_type().unwrap().is_dir() {
-                if let Ok(realTid) = Tid::try_from(threadDir.file_name().to_str().unwrap()) {
+            if thread_dir.file_type().unwrap().is_dir() {
+                if let Ok(real_tid) = Tid::try_from(thread_dir.file_name().to_str().unwrap()) {
                     // get tid
-                    let threadStatusFileContent = match fs::read_to_string(format!(
+                    let thread_status_file_content = match fs::read_to_string(format!(
                         "{}/status",
-                        threadDir.path().to_str().unwrap()
+                        thread_dir.path().to_str().unwrap()
                     )) {
                         Ok(content) => content,
                         Err(_) => continue,
                     };
 
-                    let threadLines: Vec<&str> = threadStatusFileContent.lines().collect();
+                    let thread_lines: Vec<&str> = thread_status_file_content.lines().collect();
 
                     // get tid
-                    let tid = if globalConfig.is_old_kernel() {
-                        Tid::New(0)
+                    let tid = if glob_conf.is_old_kernel() {
+                        Tid::new(0)
                     } else {
-                        let tids = threadLines[13].split_whitespace().collect::<Vec<&str>>();
+                        let tids = thread_lines[13].split_whitespace().collect::<Vec<&str>>();
                         Tid::try_from(tids[tids.len() - 1]).unwrap()
                     };
 
-                    let mut newThread = Thread::New(tid, self.pid, realTid, self.realPid);
+                    let mut new_thread = Thread::new(tid, self.pid, real_tid, self.real_pid);
 
-                    if let Ok(threadStat) = newThread.GetStat(taskStatsConnection) {
-                        self.stat += threadStat;
+                    if let Ok(thread_stat) = new_thread.get_stat(taskstats_conn) {
+                        self.stat += thread_stat;
 
                         // add new thread
-                        self.threads.push(newThread);
+                        self.threads.push(new_thread);
                     }
                 }
             }
         }
 
         // from here can fail and still return the stats
-        self.accumulatedStat = self.stat.clone();
+        self.accumulated_stat = self.stat.clone();
 
         // update child list
-        let childrenList = match fs::read_to_string(format!(
+        let children_list = match fs::read_to_string(format!(
             "/proc/{}/task/{}/children",
-            self.realPid, self.realPid
+            self.real_pid, self.real_pid
         )) {
             Ok(list) => list,
-            Err(_) => return Ok(self.accumulatedStat.clone()),
+            Err(_) => return Ok(self.accumulated_stat.clone()),
         };
 
-        for childRealPid in childrenList.split_terminator(" ") {
-            let mut childProcess = match GetRealProcess(&Pid::try_from(childRealPid).unwrap()) {
+        for child_real_pid in children_list.split_terminator(" ") {
+            let mut child_proc = match get_real_proc(&Pid::try_from(child_real_pid).unwrap()) {
                 Ok(child) => child,
-                Err(_) => return Ok(self.accumulatedStat.clone()),
+                Err(_) => return Ok(self.accumulated_stat.clone()),
             };
 
             // build the child thread and process list
-            let childStat = match childProcess.BuildProcessTree(taskStatsConnection, networkRawStat)
+            let child_stat = match child_proc.build_proc_tree(taskstats_conn, net_rawstat)
             {
                 Ok(stat) => stat,
-                Err(_) => return Ok(self.accumulatedStat.clone()),
+                Err(_) => return Ok(self.accumulated_stat.clone()),
             };
 
-            self.accumulatedChildsStat += childStat;
+            self.accumulated_childs_stat += child_stat;
 
             // add the child to this process child list
-            self.childs.push(childProcess);
+            self.childs.push(child_proc);
         }
 
-        self.accumulatedStat = self.stat.clone() + self.accumulatedChildsStat.clone();
+        self.accumulated_stat = self.stat.clone() + self.accumulated_childs_stat.clone();
 
-        Ok(self.accumulatedStat.clone())
+        Ok(self.accumulated_stat.clone())
     }
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(unused)]
 struct UidMapEntry {
-    uidStart: Uid,
-    uidEnd: Uid,
-    realUidStart: Uid,
-    realUidEnd: Uid,
+    uid_start: Uid,
+    uid_end: Uid,
+    real_uid_start: Uid,
+    real_uid_end: Uid,
     length: usize,
 }
 
 impl UidMapEntry {
-    pub fn New(uidStart: Uid, realUidStart: Uid, length: usize) -> Self {
+    pub fn new(uid_start: Uid, real_uid_start: Uid, length: usize) -> Self {
         Self {
-            uidStart,
-            uidEnd: Uid::new(uidStart.to_usize() + length),
-            realUidStart,
-            realUidEnd: Uid::new(realUidStart.to_usize() + length),
+            uid_start,
+            uid_end: Uid::new(uid_start.to_usize() + length),
+            real_uid_start,
+            real_uid_end: Uid::new(real_uid_start.to_usize() + length),
             length,
         }
     }
 
-    pub fn MapToUid(&self, realUid: Uid) -> Option<Uid> {
-        if realUid >= self.realUidStart && realUid <= self.realUidEnd {
+    pub fn map_to_uid(&self, real_uid: Uid) -> Option<Uid> {
+        if real_uid >= self.real_uid_start && real_uid <= self.real_uid_end {
             Some(Uid::new(
-                self.uidStart.to_usize() + realUid.to_usize() - self.realUidStart.to_usize(),
+                self.uid_start.to_usize() + real_uid.to_usize() - self.real_uid_start.to_usize(),
             ))
         } else {
             None
@@ -1067,37 +1071,37 @@ impl TryFrom<&str> for UidMapEntry {
             .collect();
 
         if values.len() != 3 {
-            return Err(ProcessError::UID_MAP_ERROR);
+            return Err(ProcessError::UIDMapErr);
         }
 
         let start = Uid::new(values[0]);
-        let realStart = Uid::new(values[1]);
+        let real_start = Uid::new(values[1]);
         let length = values[2];
 
         // check length
         if length <= 0 {
-            return Err(ProcessError::UID_MAP_ERROR);
+            return Err(ProcessError::UIDMapErr);
         }
 
-        Ok(Self::New(start, realStart, length))
+        Ok(Self::new(start, real_start, length))
     }
 }
 
 #[derive(Debug, Clone)]
 struct UidMap {
-    uidMapEntries: Vec<UidMapEntry>,
+    uid_map_entries: Vec<UidMapEntry>,
 }
 
 impl UidMap {
-    pub fn New() -> Self {
+    pub fn new() -> Self {
         Self {
-            uidMapEntries: Vec::new(),
+            uid_map_entries: Vec::new(),
         }
     }
 
-    pub fn MapToUid(&self, realUid: Uid) -> Option<Uid> {
-        for uidMapEntry in &self.uidMapEntries {
-            if let Some(uid) = uidMapEntry.MapToUid(realUid) {
+    pub fn map_to_uid(&self, real_uid: Uid) -> Option<Uid> {
+        for uid_map_entry in &self.uid_map_entries {
+            if let Some(uid) = uid_map_entry.map_to_uid(real_uid) {
                 return Some(uid);
             }
         }
@@ -1110,29 +1114,29 @@ impl TryFrom<&str> for UidMap {
     type Error = ProcessError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let mut result = Self::New();
+        let mut result = Self::new();
 
         for line in value.lines() {
-            let newUidMapEntry = UidMapEntry::try_from(line)?;
+            let new_uid_map_entry = UidMapEntry::try_from(line)?;
 
             // check for overlapping
-            for uidMapEntry in &result.uidMapEntries {
+            for uid_map_entry in &result.uid_map_entries {
                 // if overlap, error
-                if newUidMapEntry.uidStart >= uidMapEntry.uidStart
-                    && newUidMapEntry.uidStart <= uidMapEntry.uidEnd
+                if new_uid_map_entry.uid_start >= uid_map_entry.uid_start
+                    && new_uid_map_entry.uid_start <= uid_map_entry.uid_end
                 {
-                    return Err(ProcessError::UID_MAP_ERROR);
+                    return Err(ProcessError::UIDMapErr);
                 }
 
-                if newUidMapEntry.uidEnd >= uidMapEntry.uidStart
-                    && newUidMapEntry.uidEnd <= uidMapEntry.uidEnd
+                if new_uid_map_entry.uid_end >= uid_map_entry.uid_start
+                    && new_uid_map_entry.uid_end <= uid_map_entry.uid_end
                 {
-                    return Err(ProcessError::UID_MAP_ERROR);
+                    return Err(ProcessError::UIDMapErr);
                 }
             }
 
             // check done
-            result.uidMapEntries.push(newUidMapEntry);
+            result.uid_map_entries.push(new_uid_map_entry);
         }
 
         Ok(result)
@@ -1140,29 +1144,30 @@ impl TryFrom<&str> for UidMap {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(unused)]
 struct GidMapEntry {
-    gidStart: Gid,
-    gidEnd: Gid,
-    realGidStart: Gid,
-    realGidEnd: Gid,
+    gid_start: Gid,
+    gid_end: Gid,
+    real_gid_start: Gid,
+    real_gid_end: Gid,
     length: usize,
 }
 
 impl GidMapEntry {
-    pub fn New(gidStart: Gid, realGidStart: Gid, length: usize) -> Self {
+    pub fn new(gid_start: Gid, real_gid_start: Gid, length: usize) -> Self {
         Self {
-            gidStart,
-            gidEnd: Gid::new(gidStart.to_usize() + length),
-            realGidStart,
-            realGidEnd: Gid::new(realGidStart.to_usize() + length),
+            gid_start,
+            gid_end: Gid::new(gid_start.to_usize() + length),
+            real_gid_start,
+            real_gid_end: Gid::new(real_gid_start.to_usize() + length),
             length,
         }
     }
 
-    pub fn MapToGid(&self, realGid: Gid) -> Option<Gid> {
-        if realGid >= self.realGidStart && realGid <= self.realGidEnd {
+    pub fn map_to_gid(&self, real_gid: Gid) -> Option<Gid> {
+        if real_gid >= self.real_gid_start && real_gid <= self.real_gid_end {
             Some(Gid::new(
-                self.gidStart.to_usize() + realGid.to_usize() - self.realGidStart.to_usize(),
+                self.gid_start.to_usize() + real_gid.to_usize() - self.real_gid_start.to_usize(),
             ))
         } else {
             None
@@ -1181,37 +1186,37 @@ impl TryFrom<&str> for GidMapEntry {
             .collect();
 
         if values.len() != 3 {
-            return Err(ProcessError::GID_MAP_ERROR);
+            return Err(ProcessError::GIDMapErr);
         }
 
         let start = Gid::new(values[0]);
-        let realStart = Gid::new(values[1]);
+        let real_start = Gid::new(values[1]);
         let length = values[2];
 
         // check length
         if length <= 0 {
-            return Err(ProcessError::GID_MAP_ERROR);
+            return Err(ProcessError::GIDMapErr);
         }
 
-        Ok(Self::New(start, realStart, length))
+        Ok(Self::new(start, real_start, length))
     }
 }
 
 #[derive(Debug, Clone)]
 struct GidMap {
-    gidMapEntries: Vec<GidMapEntry>,
+    gid_map_entries: Vec<GidMapEntry>,
 }
 
 impl GidMap {
-    pub fn New() -> Self {
+    pub fn new() -> Self {
         Self {
-            gidMapEntries: Vec::new(),
+            gid_map_entries: Vec::new(),
         }
     }
 
-    pub fn MapToGid(&self, realGid: Gid) -> Option<Gid> {
-        for gidMapEntry in &self.gidMapEntries {
-            if let Some(gid) = gidMapEntry.MapToGid(realGid) {
+    pub fn map_to_gid(&self, real_gid: Gid) -> Option<Gid> {
+        for gid_map_entry in &self.gid_map_entries {
+            if let Some(gid) = gid_map_entry.map_to_gid(real_gid) {
                 return Some(gid);
             }
         }
@@ -1224,29 +1229,29 @@ impl TryFrom<&str> for GidMap {
     type Error = ProcessError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let mut result = Self::New();
+        let mut result = Self::new();
 
         for line in value.lines() {
-            let newGidMapEntry = GidMapEntry::try_from(line)?;
+            let new_gid_map_entry = GidMapEntry::try_from(line)?;
 
             // check for overlapping
-            for gidMapEntry in &result.gidMapEntries {
+            for gid_map_entry in &result.gid_map_entries {
                 // if overlap, error
-                if newGidMapEntry.gidStart >= gidMapEntry.gidStart
-                    && newGidMapEntry.gidStart <= gidMapEntry.gidEnd
+                if new_gid_map_entry.gid_start >= gid_map_entry.gid_start
+                    && new_gid_map_entry.gid_start <= gid_map_entry.gid_end
                 {
-                    return Err(ProcessError::GID_MAP_ERROR);
+                    return Err(ProcessError::GIDMapErr);
                 }
 
-                if newGidMapEntry.gidEnd >= gidMapEntry.gidStart
-                    && newGidMapEntry.gidEnd <= gidMapEntry.gidEnd
+                if new_gid_map_entry.gid_end >= gid_map_entry.gid_start
+                    && new_gid_map_entry.gid_end <= gid_map_entry.gid_end
                 {
-                    return Err(ProcessError::GID_MAP_ERROR);
+                    return Err(ProcessError::GIDMapErr);
                 }
             }
 
             // check done
-            result.gidMapEntries.push(newGidMapEntry);
+            result.gid_map_entries.push(new_gid_map_entry);
         }
 
         Ok(result)
@@ -1254,119 +1259,119 @@ impl TryFrom<&str> for GidMap {
 }
 
 /// Make a process from realPid, with all data pulled from running system
-pub fn GetRealProcess(realPid: &Pid) -> Result<Process, ProcessError> {
-    let statusFileContent = fs::read_to_string(format!("/proc/{}/status", realPid))?;
-    let lines: Vec<&str> = statusFileContent.lines().collect();
+pub fn get_real_proc(real_pid: &Pid) -> Result<Process, ProcessError> {
+    let status_file_content = fs::read_to_string(format!("/proc/{}/status", real_pid))?;
+    let lines: Vec<&str> = status_file_content.lines().collect();
 
     // get global config
-    let globalConfig = config::get_glob_conf().unwrap();
+    let glob_conf = config::get_glob_conf().unwrap();
 
     // get pid
-    let pid = if globalConfig.is_old_kernel() {
-        Pid::New(0)
+    let pid = if glob_conf.is_old_kernel() {
+        Pid::new(0)
     } else {
         let pids = lines[12].split_whitespace().collect::<Vec<&str>>();
         Pid::try_from(pids[pids.len() - 1]).unwrap()
     };
 
     // get realParentPid
-    let realParentPid = if *realPid == Pid::New(1) {
-        Pid::New(0)
+    let real_parent_pid = if *real_pid == Pid::new(1) {
+        Pid::new(0)
     } else {
         Pid::try_from(lines[6].split_whitespace().collect::<Vec<&str>>()[1])?
     };
 
     // get parentPid
-    let parentPid = if globalConfig.is_old_kernel() {
-        Pid::New(0)
-    } else if *realPid == Pid::New(1) {
-        Pid::New(0)
+    let parent_pid = if glob_conf.is_old_kernel() {
+        Pid::new(0)
+    } else if *real_pid == Pid::new(1) {
+        Pid::new(0)
     } else {
-        let parentStatusFileContent =
-            fs::read_to_string(format!("/proc/{}/status", realParentPid))?;
+        let parent_status_file_content =
+            fs::read_to_string(format!("/proc/{}/status", real_parent_pid))?;
 
-        let parentLines: Vec<&str> = parentStatusFileContent.lines().collect();
-        let parentPids = parentLines[12].split_whitespace().collect::<Vec<&str>>();
+        let parent_lines: Vec<&str> = parent_status_file_content.lines().collect();
+        let parent_pids = parent_lines[12].split_whitespace().collect::<Vec<&str>>();
 
-        if pid != Pid::New(1) {
-            Pid::try_from(parentPids[parentPids.len() - 1])?
+        if pid != Pid::new(1) {
+            Pid::try_from(parent_pids[parent_pids.len() - 1])?
         } else {
-            Pid::New(0)
+            Pid::new(0)
         }
     };
 
     // get real uids and gids
-    let realUids = lines[8].split_whitespace().collect::<Vec<&str>>();
-    let realGids = lines[9].split_whitespace().collect::<Vec<&str>>();
+    let real_uids = lines[8].split_whitespace().collect::<Vec<&str>>();
+    let real_gids = lines[9].split_whitespace().collect::<Vec<&str>>();
 
-    let realUid = Uid::try_from(realUids[1]).unwrap();
-    let realEffectiveUid = Uid::try_from(realUids[2]).unwrap();
-    let realSavedUid = Uid::try_from(realUids[3]).unwrap();
-    let realFsUid = Uid::try_from(realUids[4]).unwrap();
+    let real_uid = Uid::try_from(real_uids[1]).unwrap();
+    let real_effective_uid = Uid::try_from(real_uids[2]).unwrap();
+    let real_saved_uid = Uid::try_from(real_uids[3]).unwrap();
+    let real_fs_uid = Uid::try_from(real_uids[4]).unwrap();
 
-    let realGid = Gid::try_from(realGids[1]).unwrap();
-    let realEffectiveGid = Gid::try_from(realGids[2]).unwrap();
-    let realSavedGid = Gid::try_from(realGids[3]).unwrap();
-    let realFsGid = Gid::try_from(realGids[4]).unwrap();
+    let real_gid = Gid::try_from(real_gids[1]).unwrap();
+    let real_effective_gid = Gid::try_from(real_gids[2]).unwrap();
+    let real_saved_gid = Gid::try_from(real_gids[3]).unwrap();
+    let real_fs_gid = Gid::try_from(real_gids[4]).unwrap();
 
     // map real uids and real gids to uids and gids
-    let uidMap =
-        UidMap::try_from(fs::read_to_string(format!("/proc/{}/uid_map", realPid))?.as_str())?;
-    let gidMap =
-        GidMap::try_from(fs::read_to_string(format!("/proc/{}/gid_map", realPid))?.as_str())?;
+    let uid_map =
+        UidMap::try_from(fs::read_to_string(format!("/proc/{}/uid_map", real_pid))?.as_str())?;
+    let gid_map =
+        GidMap::try_from(fs::read_to_string(format!("/proc/{}/gid_map", real_pid))?.as_str())?;
 
     // map every real id to id
-    let uid = uidMap.MapToUid(realUid).unwrap();
-    let effectiveUid = uidMap.MapToUid(realEffectiveUid).unwrap();
-    let savedUid = uidMap.MapToUid(realSavedUid).unwrap();
-    let fsUid = uidMap.MapToUid(realFsUid).unwrap();
+    let uid = uid_map.map_to_uid(real_uid).unwrap();
+    let effective_uid = uid_map.map_to_uid(real_effective_uid).unwrap();
+    let saved_uid = uid_map.map_to_uid(real_saved_uid).unwrap();
+    let fs_uid = uid_map.map_to_uid(real_fs_uid).unwrap();
 
-    let gid = gidMap.MapToGid(realGid).unwrap();
-    let effectiveGid = gidMap.MapToGid(realEffectiveGid).unwrap();
-    let savedGid = gidMap.MapToGid(realSavedGid).unwrap();
-    let fsGid = gidMap.MapToGid(realFsGid).unwrap();
+    let gid = gid_map.map_to_gid(real_gid).unwrap();
+    let effective_gid = gid_map.map_to_gid(real_effective_gid).unwrap();
+    let saved_gid = gid_map.map_to_gid(real_saved_gid).unwrap();
+    let fs_gid = gid_map.map_to_gid(real_fs_gid).unwrap();
 
     // get execution path
-    let executionPath = fs::read_link(format!("/proc/{}/exe", realPid))?;
-    let executionPath = executionPath.as_path().to_str().unwrap().to_string();
+    let exec_path = fs::read_link(format!("/proc/{}/exe", real_pid))?;
+    let exec_path = exec_path.as_path().to_str().unwrap().to_string();
 
     // get command
-    let command = fs::read_to_string(format!("/proc/{}/comm", realPid))?;
+    let command = fs::read_to_string(format!("/proc/{}/comm", real_pid))?;
 
-    Ok(Process::New(
+    Ok(Process::new(
         pid,
-        parentPid,
+        parent_pid,
         uid,
-        effectiveUid,
-        savedUid,
-        fsUid,
+        effective_uid,
+        saved_uid,
+        fs_uid,
         gid,
-        effectiveGid,
-        savedGid,
-        fsGid,
-        *realPid,
-        realParentPid,
-        realUid,
-        realEffectiveUid,
-        realSavedUid,
-        realFsUid,
-        realGid,
-        realEffectiveGid,
-        realSavedGid,
-        realFsGid,
-        executionPath,
+        effective_gid,
+        saved_gid,
+        fs_gid,
+        *real_pid,
+        real_parent_pid,
+        real_uid,
+        real_effective_uid,
+        real_saved_uid,
+        real_fs_uid,
+        real_gid,
+        real_effective_gid,
+        real_saved_gid,
+        real_fs_gid,
+        exec_path,
         command,
     ))
 }
 
 #[derive(Debug)]
 pub enum ProcessError {
-    IO_ERROR(io::Error),
-    TASKSTATS_ERROR(TaskStatsError),
-    PARSE_INT_ERROR(std::num::ParseIntError),
-    UID_MAP_ERROR,
-    GID_MAP_ERROR,
-    COMMON_ERROR(CommonError),
+    IOErr(io::Error),
+    TaskstatsErr(TaskStatsError),
+    ParseIntErr(std::num::ParseIntError),
+    UIDMapErr,
+    GIDMapErr,
+    CommonErr(CommonError),
 }
 
 impl std::error::Error for ProcessError {}
@@ -1374,12 +1379,12 @@ impl std::error::Error for ProcessError {}
 impl fmt::Display for ProcessError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let result = match self {
-            Self::IO_ERROR(error) => String::from(format!("IO error: {}", error)),
-            Self::TASKSTATS_ERROR(error) => String::from(format!("Taskstats error: {}", error)),
-            Self::PARSE_INT_ERROR(error) => String::from(format!("Parse integer error: {}", error)),
-            Self::UID_MAP_ERROR => String::from(format!("Uid map error")),
-            Self::GID_MAP_ERROR => String::from(format!("Gid map error")),
-            Self::COMMON_ERROR(error) => String::from(format!("Common error: {}", error)),
+            Self::IOErr(error) => String::from(format!("IO error: {}", error)),
+            Self::TaskstatsErr(error) => String::from(format!("Taskstats error: {}", error)),
+            Self::ParseIntErr(error) => String::from(format!("Parse integer error: {}", error)),
+            Self::UIDMapErr => String::from(format!("Uid map error")),
+            Self::GIDMapErr => String::from(format!("Gid map error")),
+            Self::CommonErr(error) => String::from(format!("Common error: {}", error)),
         };
 
         write!(f, "{}", result)
@@ -1388,24 +1393,24 @@ impl fmt::Display for ProcessError {
 
 impl From<TaskStatsError> for ProcessError {
     fn from(error: TaskStatsError) -> Self {
-        Self::TASKSTATS_ERROR(error)
+        Self::TaskstatsErr(error)
     }
 }
 
 impl From<io::Error> for ProcessError {
     fn from(error: io::Error) -> Self {
-        Self::IO_ERROR(error)
+        Self::IOErr(error)
     }
 }
 
 impl From<std::num::ParseIntError> for ProcessError {
     fn from(error: std::num::ParseIntError) -> Self {
-        Self::PARSE_INT_ERROR(error)
+        Self::ParseIntErr(error)
     }
 }
 
 impl From<CommonError> for ProcessError {
     fn from(error: CommonError) -> Self {
-        Self::COMMON_ERROR(error)
+        Self::CommonErr(error)
     }
 }

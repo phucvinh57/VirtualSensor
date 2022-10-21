@@ -66,9 +66,9 @@ fn get_processes_stats(
     let mut processes = Vec::new();
 
     for curr_real_pid in real_pid_list {
-        if let Ok(mut new_proc) = process::GetRealProcess(curr_real_pid) {
+        if let Ok(mut new_proc) = process::get_real_proc(curr_real_pid) {
             if new_proc
-                .BuildProcessTree(taskstats_conn, net_rawstat)
+                .build_proc_tree(taskstats_conn, net_rawstat)
                 .is_ok()
             {
                 processes.push(new_proc);
@@ -121,7 +121,7 @@ fn listen_thread() -> Result<(), DaemonError> {
 
                         for line in lines {
                             // get that process pid
-                            let real_pid = Pid::New(
+                            let real_pid = Pid::new(
                                 line.split_whitespace().collect::<Vec<&str>>()[1].parse()?,
                             );
 

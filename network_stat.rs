@@ -223,7 +223,7 @@ impl InterfaceRawStat {
         }
     }
 
-    pub fn GetUniConnectionStat(
+    pub fn get_uni_conn_stat(
         &mut self,
         uniConnection: &UniConnection,
     ) -> Option<&UniConnectionStat> {
@@ -279,7 +279,7 @@ impl NetworkRawStat {
             .and_then(|name| Some(name.as_str()))
     }
 
-    pub fn GetInterfaceRawStat(&mut self, interfaceName: &str) -> Option<&mut InterfaceRawStat> {
+    pub fn get_irawstat(&mut self, interfaceName: &str) -> Option<&mut InterfaceRawStat> {
         self.interfaceRawStats
             .get_mut(interfaceName)
             .and_then(|interfaceRawStat| Some(interfaceRawStat))

@@ -125,10 +125,10 @@ impl TaskStatsRawV8 {
     pub fn ToTaskStats(&self) -> TaskStats {
         TaskStats {
             commandString: self.CommandString(),
-            pid: Pid::New(self.pid as usize),
+            pid: Pid::new(self.pid as usize),
             uid: Uid::new(self.uid as usize),
             gid: Gid::new(self.gid as usize),
-            parentPid: Pid::New(self.parentPid as usize),
+            parentPid: Pid::new(self.parentPid as usize),
             nice: self.nice as isize,
             flags: self.flags as usize,
             exitcode: self.exitcode as usize,
@@ -318,10 +318,10 @@ impl TaskStatsRawV9 {
     pub fn ToTaskStats(&self) -> TaskStats {
         TaskStats {
             commandString: self.CommandString(),
-            pid: Pid::New(self.pid as usize),
+            pid: Pid::new(self.pid as usize),
             uid: Uid::new(self.uid as usize),
             gid: Gid::new(self.gid as usize),
-            parentPid: Pid::New(self.parentPid as usize),
+            parentPid: Pid::new(self.parentPid as usize),
             nice: self.nice as isize,
             flags: self.flags as usize,
             exitcode: self.exitcode as usize,
@@ -515,10 +515,10 @@ impl TaskStatsRawV10 {
     pub fn ToTaskStats(&self) -> TaskStats {
         TaskStats {
             commandString: self.CommandString(),
-            pid: Pid::New(self.pid as usize),
+            pid: Pid::new(self.pid as usize),
             uid: Uid::new(self.uid as usize),
             gid: Gid::new(self.gid as usize),
-            parentPid: Pid::New(self.parentPid as usize),
+            parentPid: Pid::new(self.parentPid as usize),
             nice: self.nice as isize,
             flags: self.flags as usize,
             exitcode: self.exitcode as usize,
@@ -715,10 +715,10 @@ impl TaskStatsRawV11 {
     pub fn ToTaskStats(&self) -> TaskStats {
         TaskStats {
             commandString: self.CommandString(),
-            pid: Pid::New(self.pid as usize),
+            pid: Pid::new(self.pid as usize),
             uid: Uid::new(self.uid as usize),
             gid: Gid::new(self.gid as usize),
-            parentPid: Pid::New(self.parentPid as usize),
+            parentPid: Pid::new(self.parentPid as usize),
             nice: self.nice as isize,
             flags: self.flags as usize,
             exitcode: self.exitcode as usize,
@@ -1154,24 +1154,24 @@ impl TryFrom<TaskStatsAttribute> for TaskStatsResultAttribute {
 
         match attributeType {
             TaskStatsResultAttributeType::UNSPECIFIED => Ok(Self::UNSPECIFIED),
-            TaskStatsResultAttributeType::PID => Ok(Self::PID(Tid::New(u32::from_ne_bytes(
+            TaskStatsResultAttributeType::PID => Ok(Self::PID(Tid::new(u32::from_ne_bytes(
                 payload[4..8].try_into().unwrap(),
             ) as usize))),
-            TaskStatsResultAttributeType::TGID => Ok(Self::TGID(Pid::New(u32::from_ne_bytes(
+            TaskStatsResultAttributeType::TGID => Ok(Self::TGID(Pid::new(u32::from_ne_bytes(
                 payload[4..8].try_into().unwrap(),
             ) as usize))),
             TaskStatsResultAttributeType::STATS => {
                 Ok(Self::STATS(TaskStatsRaw::FromByteArray(&payload)?))
             }
             TaskStatsResultAttributeType::AGGR_PID => {
-                let tid = Tid::New(u32::from_ne_bytes(payload[4..8].try_into().unwrap()) as usize);
+                let tid = Tid::new(u32::from_ne_bytes(payload[4..8].try_into().unwrap()) as usize);
                 let stats = TaskStatsRaw::FromByteArray(&payload[12..])?;
                 Ok(Self::AGGR_PID(TaskStatsResultAttributeAggregatePid::New(
                     tid, stats,
                 )))
             }
             TaskStatsResultAttributeType::AGGR_TGID => {
-                let pid = Pid::New(u32::from_ne_bytes(payload[4..8].try_into().unwrap()) as usize);
+                let pid = Pid::new(u32::from_ne_bytes(payload[4..8].try_into().unwrap()) as usize);
                 let stats = TaskStatsRaw::FromByteArray(&payload[12..])?;
 
                 Ok(Self::AGGR_TGID(TaskStatsResultAttributeAggregateTgid::New(
@@ -1334,7 +1334,7 @@ impl TaskStatsConnection {
         }
     }
 
-    pub fn GetThreadTaskStats(&self, realTid: Tid) -> Result<TaskStats, TaskStatsError> {
+    pub fn get_thread_taskstats(&self, realTid: Tid) -> Result<TaskStats, TaskStatsError> {
         let mut taskStatsMessage =
             TaskStatsMessage::New(self.taskStatsFamilyId, TaskStatsCommand::GET);
 
