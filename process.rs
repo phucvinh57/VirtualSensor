@@ -8,7 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::common::{CommonError, Count, DataCount, Gid, Inode, TimeCount, Timestamp, Uid};
 use crate::config;
 use crate::taskstat::{TaskStatsConnection, TaskStatsError};
-use crate::NetworkStat::{Connection, NetworkRawStat, UniConnection, UniConnectionStat};
+use crate::network_stat::{Connection, NetworkRawStat, UniConnection, UniConnectionStat};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 pub struct Pid(u128);
@@ -841,13 +841,13 @@ impl Process {
         networkRawStat: &mut NetworkRawStat,
     ) -> Result<ProcessStat, ProcessError> {
         // get global config
-        let globalConfig = config::GetGlobalConfig().unwrap();
+        let globalConfig = config::get_glob_conf().unwrap();
 
         // get memory usage
         let memData = fs::read_to_string(format!("/proc/{}/status", self.realPid))?;
         let memData: Vec<&str> = memData.lines().collect();
 
-        let (vss, rss, swap) = if globalConfig.IsOldKernel() {
+        let (vss, rss, swap) = if globalConfig.is_old_kernel() {
             (
                 memData[13].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
                 memData[17].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
@@ -969,7 +969,7 @@ impl Process {
                     let threadLines: Vec<&str> = threadStatusFileContent.lines().collect();
 
                     // get tid
-                    let tid = if globalConfig.IsOldKernel() {
+                    let tid = if globalConfig.is_old_kernel() {
                         Tid::New(0)
                     } else {
                         let tids = threadLines[13].split_whitespace().collect::<Vec<&str>>();
@@ -1259,10 +1259,10 @@ pub fn GetRealProcess(realPid: &Pid) -> Result<Process, ProcessError> {
     let lines: Vec<&str> = statusFileContent.lines().collect();
 
     // get global config
-    let globalConfig = config::GetGlobalConfig().unwrap();
+    let globalConfig = config::get_glob_conf().unwrap();
 
     // get pid
-    let pid = if globalConfig.IsOldKernel() {
+    let pid = if globalConfig.is_old_kernel() {
         Pid::New(0)
     } else {
         let pids = lines[12].split_whitespace().collect::<Vec<&str>>();
@@ -1277,7 +1277,7 @@ pub fn GetRealProcess(realPid: &Pid) -> Result<Process, ProcessError> {
     };
 
     // get parentPid
-    let parentPid = if globalConfig.IsOldKernel() {
+    let parentPid = if globalConfig.is_old_kernel() {
         Pid::New(0)
     } else if *realPid == Pid::New(1) {
         Pid::New(0)

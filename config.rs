@@ -5,84 +5,84 @@ use std::time::Duration;
 use config_file::{ConfigFileError, FromConfigFile};
 use serde::{Deserialize, Deserializer};
 
-use crate::Process::Pid;
+use crate::process::Pid;
 
-static mut globalConfig: Option<Arc<DaemonConfig>> = None;
+static mut GLOBAL_CONFIG: Option<Arc<DaemonConfig>> = None;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct MonitorTarget {
-    pub containerName: String,
-    pub pidList: Vec<Pid>,
+    pub container_name: String,
+    pub pid_list: Vec<Pid>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct DaemonConfig {
-    oldKernel: bool,
+    old_kernel: bool,
 
-    listenAddress: String,
-    captureSizeLimit: usize,
-    #[serde(deserialize_with = "NanoSecondsToDuration")]
-    controlCommandReceiveTimeout: Duration,
-    #[serde(deserialize_with = "NanoSecondsToDuration")]
-    captureThreadReceiveTimeout: Duration,
-    printPrettyOutput: bool,
+    listen_addr: String,
+    capture_size_limit: usize,
+    #[serde(deserialize_with = "nanosecs_to_duration")]
+    control_command_receive_timeout: Duration,
+    #[serde(deserialize_with = "nanosecs_to_duration")]
+    capture_thread_receive_timeout: Duration,
+    print_pretty_output: bool,
 
-    monitorTargets: Vec<MonitorTarget>,
+    monitor_targets: Vec<MonitorTarget>,
 }
 
 impl DaemonConfig {
-    pub fn IsOldKernel(&self) -> bool {
-        self.oldKernel
+    pub fn is_old_kernel(&self) -> bool {
+        self.old_kernel
     }
-    pub fn ListenAddress(&self) -> String {
-        self.listenAddress.clone()
+    pub fn get_listen_addr(&self) -> String {
+        self.listen_addr.clone()
     }
-    pub fn CaptureSizeLimit(&self) -> usize {
-        self.captureSizeLimit
+    pub fn get_capture_size_limit(&self) -> usize {
+        self.capture_size_limit
     }
-    pub fn ControlCommandReceiveTimeout(&self) -> Duration {
-        self.controlCommandReceiveTimeout
+    pub fn get_control_command_receive_timeout(&self) -> Duration {
+        self.control_command_receive_timeout
     }
-    pub fn CaptureThreadReceiveTimeout(&self) -> Duration {
-        self.captureThreadReceiveTimeout
+    pub fn get_capture_thread_receive_timeout(&self) -> Duration {
+        self.capture_thread_receive_timeout
     }
-    pub fn PrintPrettyOutput(&self) -> bool {
-        self.printPrettyOutput
+    pub fn is_print_pretty_output(&self) -> bool {
+        self.print_pretty_output
     }
-    pub fn MonitorTargets(&self) -> Vec<MonitorTarget> {
-        self.monitorTargets.clone()
+    pub fn get_monitor_targets(&self) -> Vec<MonitorTarget> {
+        self.monitor_targets.clone()
     }
 }
 
-fn NanoSecondsToDuration<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Duration, D::Error> {
+fn nanosecs_to_duration<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Duration, D::Error> {
     Ok(Duration::from_nanos(Deserialize::deserialize(
         deserializer,
     )?))
 }
 
-pub fn InitGlobalConfig(configPath: &str) -> Result<(), ConfigError> {
-    let config = DaemonConfig::from_config_file(configPath)?;
+pub fn init_glob_conf(conf_path: &str) -> Result<(), ConfigError> {
+    let config = DaemonConfig::from_config_file(conf_path)?;
 
     unsafe {
-        globalConfig = Some(Arc::new(config));
+        GLOBAL_CONFIG = Some(Arc::new(config));
     }
 
     Ok(())
 }
 
-pub fn GetGlobalConfig() -> Result<Arc<DaemonConfig>, ConfigError> {
+pub fn get_glob_conf() -> Result<Arc<DaemonConfig>, ConfigError> {
     unsafe {
-        match &globalConfig {
+        match &GLOBAL_CONFIG {
             Some(config) => Ok(Arc::clone(config)),
-            None => Err(ConfigError::UNINITIALIZED_CONFIG),
+            None => Err(ConfigError::UninitializedConfig),
         }
     }
 }
 
 #[derive(Debug)]
 pub enum ConfigError {
-    LOAD_CONFIG_ERROR(ConfigFileError),
-    UNINITIALIZED_CONFIG,
+    LoadConfigErr(ConfigFileError),
+    UninitializedConfig,
 }
 
 impl std::error::Error for ConfigError {}
@@ -90,10 +90,10 @@ impl std::error::Error for ConfigError {}
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let result = match self {
-            Self::LOAD_CONFIG_ERROR(configError) => {
-                String::from(format!("Load config error: {}", configError))
+            Self::LoadConfigErr(conf_err) => {
+                String::from(format!("Load config error: {}", conf_err))
             }
-            Self::UNINITIALIZED_CONFIG => String::from("Uninitialized config"),
+            Self::UninitializedConfig => String::from("Uninitialized config"),
         };
 
         write!(f, "{}", result)
@@ -102,6 +102,6 @@ impl fmt::Display for ConfigError {
 
 impl From<ConfigFileError> for ConfigError {
     fn from(error: ConfigFileError) -> Self {
-        Self::LOAD_CONFIG_ERROR(error)
+        Self::LoadConfigErr(error)
     }
 }

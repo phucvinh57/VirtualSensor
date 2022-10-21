@@ -16,8 +16,8 @@ use crate::config::{self, ConfigError};
 const TCP_PAYLOAD_TYPE: u8 = 0x06;
 const UDP_PAYLOAD_TYPE: u8 = 0x11;
 
-const nullIpv4: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
-const nullIpv6: IpAddr = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0));
+const NULL_IPV4: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
+const NULL_IPV6: IpAddr = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0));
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize)]
 pub enum ConnectionType {
@@ -259,7 +259,7 @@ pub struct NetworkRawStat {
 }
 
 impl NetworkRawStat {
-    pub fn New() -> Self {
+    pub fn new() -> Self {
         Self {
             connectionLookupTable: HashMap::new(),
             interfaceNameLookupTable: HashMap::new(),
@@ -304,14 +304,14 @@ fn ParseIpv4Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
 
     // check fixed header len
     if data.len() < IPV4_FIXED_HEADER_SIZE {
-        return Err(NetworkStatError::IPV4_PACKET_LENGTH_ERROR(data.len()));
+        return Err(NetworkStatError::Ipv4PacketLenErr(data.len()));
     }
 
     // check version
     if data[0] & 0xf0 != 0x40
     // not ipv4
     {
-        return Err(NetworkStatError::IPV4_PACKET_VERSION_ERROR(data[0] & 0xf0));
+        return Err(NetworkStatError::Ipv4PacketVersionErr(data[0] & 0xf0));
     }
 
     // get header len
@@ -324,7 +324,7 @@ fn ParseIpv4Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     let connectionType = match data[9] {
         TCP_PAYLOAD_TYPE => ConnectionType::TCP,
         UDP_PAYLOAD_TYPE => ConnectionType::UDP,
-        _ => return Err(NetworkStatError::UNSUPPORTED_PROTOCOL(data[9])),
+        _ => return Err(NetworkStatError::UnsupportedProtocol(data[9])),
     };
 
     // get src ip begin at data[12]
@@ -336,7 +336,7 @@ fn ParseIpv4Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     // get source port
     let srcPort = u16::from_be_bytes(
         data.get(headerLength..headerLength + 2)
-            .ok_or(NetworkStatError::CONVERT_ERROR)?
+            .ok_or(NetworkStatError::ConvertErr)?
             .try_into()
             .unwrap(),
     );
@@ -344,7 +344,7 @@ fn ParseIpv4Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     // get des port
     let desPort = u16::from_be_bytes(
         data.get(headerLength + 2..headerLength + 4)
-            .ok_or(NetworkStatError::CONVERT_ERROR)?
+            .ok_or(NetworkStatError::ConvertErr)?
             .try_into()
             .unwrap(),
     );
@@ -365,14 +365,14 @@ fn ParseIpv6Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
 
     // check fixed header len
     if data.len() < IPV6_FIXED_HEADER_SIZE {
-        return Err(NetworkStatError::IPV6_PACKET_LENGTH_ERROR(data.len()));
+        return Err(NetworkStatError::Ipv6PacketLenErr(data.len()));
     }
 
     // check version
     if data[0] & 0xf0 != 0x60
     // not ipv6
     {
-        return Err(NetworkStatError::IPV6_PACKET_VERSION_ERROR(data[0] & 0xf0));
+        return Err(NetworkStatError::Ipv6PacketVersionErr(data[0] & 0xf0));
     }
 
     // get payload length
@@ -412,12 +412,12 @@ fn ParseIpv6Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
             x if ipv6ExtensionHeaderTypes.contains(&x) => {
                 let tmp = data
                     .get(currentIndex..currentIndex + 2)
-                    .ok_or(NetworkStatError::CONVERT_ERROR)?;
+                    .ok_or(NetworkStatError::ConvertErr)?;
                 nextHeaderType = tmp[0];
                 currentIndex += tmp[1] as usize;
             }
             headerType => {
-                return Err(NetworkStatError::IPV6_UNKNOWN_OPTIONAL_HEADER_TYPE(
+                return Err(NetworkStatError::Ipv6UnknownOptionalHeaderType(
                     headerType,
                 ))
             }
@@ -428,13 +428,13 @@ fn ParseIpv6Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     let connectionType = match nextHeaderType {
         TCP_PAYLOAD_TYPE => ConnectionType::TCP,
         UDP_PAYLOAD_TYPE => ConnectionType::UDP,
-        _ => return Err(NetworkStatError::UNSUPPORTED_PROTOCOL(nextHeaderType)),
+        _ => return Err(NetworkStatError::UnsupportedProtocol(nextHeaderType)),
     };
 
     // get src port
     let srcPort = u16::from_be_bytes(
         data.get(currentIndex..currentIndex + 2)
-            .ok_or(NetworkStatError::CONVERT_ERROR)?
+            .ok_or(NetworkStatError::ConvertErr)?
             .try_into()
             .unwrap(),
     );
@@ -442,7 +442,7 @@ fn ParseIpv6Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     // get des port
     let desPort = u16::from_be_bytes(
         data.get(currentIndex + 2..currentIndex + 4)
-            .ok_or(NetworkStatError::CONVERT_ERROR)?
+            .ok_or(NetworkStatError::ConvertErr)?
             .try_into()
             .unwrap(),
     );
@@ -467,14 +467,14 @@ fn GetUniConnectionStat(packet: Packet) -> Result<UniConnectionStat, NetworkStat
     loop {
         let tag = u16::from_be_bytes(
             data.get(currentIndex..currentIndex + 2)
-                .ok_or(NetworkStatError::CONVERT_ERROR)?
+                .ok_or(NetworkStatError::ConvertErr)?
                 .try_into()
                 .unwrap(),
         );
         match tag {
             0x0800 | 0x86DD => break,
             0x8100 | 0x88A8 => currentIndex += 4,
-            vlanTag => return Err(NetworkStatError::UNKNOWN_VLAN_TAG(vlanTag)),
+            vlanTag => return Err(NetworkStatError::UnknownVLANTag(vlanTag)),
         }
     }
 
@@ -482,13 +482,13 @@ fn GetUniConnectionStat(packet: Packet) -> Result<UniConnectionStat, NetworkStat
 
     let result = match u16::from_be_bytes(
         data.get(0..2)
-            .ok_or(NetworkStatError::CONVERT_ERROR)?
+            .ok_or(NetworkStatError::ConvertErr)?
             .try_into()
             .unwrap(),
     ) {
         0x0800 => ParseIpv4Packet(&data[2..]),
         0x86DD => ParseIpv6Packet(&data[2..]),
-        protocol => Err(NetworkStatError::UNKNOWN_PROTOCOL(protocol)),
+        protocol => Err(NetworkStatError::UnknownProtocol(protocol)),
     };
 
     result.and_then(|mut x| {
@@ -509,10 +509,10 @@ fn ControlThread(
     loop {
         // check if someone want to get data
         match controlDataInReadEnd
-            .recv_timeout(config::GetGlobalConfig()?.ControlCommandReceiveTimeout())
+            .recv_timeout(config::get_glob_conf()?.get_control_command_receive_timeout())
         {
             Ok(_) => {
-                let mut networkRawStat = NetworkRawStat::New();
+                let mut networkRawStat = NetworkRawStat::new();
 
                 // build inode lookup table
                 let tcpContent = fs::read_to_string("/proc/net/tcp")?;
@@ -536,7 +536,7 @@ fn ControlThread(
                     let g = common::parse_hex_str(c[1], Endian::BIG)?;
 
                     if d.len() != 4 || e.len() != 2 || f.len() != 4 || g.len() != 2 {
-                        return Err(NetworkStatError::CONVERT_ERROR);
+                        return Err(NetworkStatError::ConvertErr);
                     }
 
                     let localAddr = IpAddr::V4(Ipv4Addr::new(d[0], d[1], d[2], d[3]));
@@ -545,7 +545,7 @@ fn ControlThread(
                     let remoteAddr = IpAddr::V4(Ipv4Addr::new(f[0], f[1], f[2], f[3]));
                     let remotePort = u16::from_be_bytes(g[0..2].try_into().unwrap());
 
-                    if localAddr == nullIpv4 || remoteAddr == nullIpv4 {
+                    if localAddr == NULL_IPV4 || remoteAddr == NULL_IPV4 {
                         continue;
                     }
 
@@ -590,7 +590,7 @@ fn ControlThread(
                     let g = common::parse_hex_str(c[1], Endian::BIG)?;
 
                     if d.len() != 16 || e.len() != 2 || f.len() != 16 || g.len() != 2 {
-                        return Err(NetworkStatError::CONVERT_ERROR);
+                        return Err(NetworkStatError::ConvertErr);
                     }
 
                     let x1 = u16::from_be_bytes(d[0..2].try_into().unwrap());
@@ -623,7 +623,7 @@ fn ControlThread(
                         ConnectionType::TCP,
                     );
 
-                    if localAddr == nullIpv6 || remoteAddr == nullIpv6 {
+                    if localAddr == NULL_IPV6 || remoteAddr == NULL_IPV6 {
                         continue;
                     }
 
@@ -660,7 +660,7 @@ fn ControlThread(
                     let g = common::parse_hex_str(c[1], Endian::BIG)?;
 
                     if d.len() != 4 || e.len() != 2 || f.len() != 4 || g.len() != 2 {
-                        return Err(NetworkStatError::CONVERT_ERROR);
+                        return Err(NetworkStatError::ConvertErr);
                     }
 
                     let localAddr = IpAddr::V4(Ipv4Addr::new(d[0], d[1], d[2], d[3]));
@@ -677,7 +677,7 @@ fn ControlThread(
                         ConnectionType::UDP,
                     );
 
-                    if localAddr == nullIpv4 || remoteAddr == nullIpv4 {
+                    if localAddr == NULL_IPV4 || remoteAddr == NULL_IPV4 {
                         continue;
                     }
 
@@ -714,7 +714,7 @@ fn ControlThread(
                     let g = common::parse_hex_str(c[1], Endian::BIG)?;
 
                     if d.len() != 16 || e.len() != 2 || f.len() != 16 || g.len() != 2 {
-                        return Err(NetworkStatError::CONVERT_ERROR);
+                        return Err(NetworkStatError::ConvertErr);
                     }
 
                     let x1 = u16::from_be_bytes(d[0..2].try_into().unwrap());
@@ -747,7 +747,7 @@ fn ControlThread(
                         ConnectionType::UDP,
                     );
 
-                    if localAddr == nullIpv6 || remoteAddr == nullIpv6 {
+                    if localAddr == NULL_IPV6 || remoteAddr == NULL_IPV6 {
                         continue;
                     }
 
@@ -797,7 +797,7 @@ fn ControlThread(
             }
             Err(RecvTimeoutError::Timeout) => {}
             Err(RecvTimeoutError::Disconnected) => {
-                return Err(NetworkStatError::CHANNEL_RECV_ERROR)
+                return Err(NetworkStatError::ChannelRecvErr)
             }
         }
 
@@ -832,14 +832,14 @@ fn CaptureThread(threadData: Arc<Mutex<ThreadData>>) -> Result<(), NetworkStatEr
 
     let mut capture = Capture::from_device(device)?
         .snaplen(
-            config::GetGlobalConfig()?
-                .CaptureSizeLimit()
+            config::get_glob_conf()?
+                .get_capture_size_limit()
                 .try_into()
                 .unwrap(),
         )
         .timeout(
-            config::GetGlobalConfig()?
-                .CaptureThreadReceiveTimeout()
+            config::get_glob_conf()?
+                .get_capture_thread_receive_timeout()
                 .as_millis()
                 .try_into()
                 .unwrap(),
@@ -876,22 +876,22 @@ fn CaptureThread(threadData: Arc<Mutex<ThreadData>>) -> Result<(), NetworkStatEr
                     .or_insert(uniConnectionStat) += uniConnectionStat;
             }
             Err(pcap::Error::TimeoutExpired) => continue,
-            Err(pcapError) => return Err(NetworkStatError::PCAP_ERROR(pcapError)),
+            Err(pcapError) => return Err(NetworkStatError::PcapErr(pcapError)),
         }
     }
 }
 
 lazy_static! {
-    static ref controlDataInWriteEnd: Mutex<Option<Sender<()>>> = Mutex::new(None);
-    static ref controlDataOutReadEnd: Mutex<Option<Receiver<NetworkRawStat>>> = Mutex::new(None);
+    static ref CONTROL_DATA_IN_WRITE_END: Mutex<Option<Sender<()>>> = Mutex::new(None);
+    static ref CONTROL_DATA_IN_READ_END: Mutex<Option<Receiver<NetworkRawStat>>> = Mutex::new(None);
 }
 
 pub fn InitNetworkStatCapture() -> Result<(), NetworkStatError> {
     let (_controlDataInWriteEnd, controlDataInReadEnd) = mpsc::channel();
     let (controlDataOutWriteEnd, _controlDataOutReadEnd) = mpsc::channel();
 
-    *controlDataInWriteEnd.lock()? = Some(_controlDataInWriteEnd);
-    *controlDataOutReadEnd.lock()? = Some(_controlDataOutReadEnd);
+    *CONTROL_DATA_IN_WRITE_END.lock()? = Some(_controlDataInWriteEnd);
+    *CONTROL_DATA_IN_READ_END.lock()? = Some(_controlDataOutReadEnd);
 
     thread::spawn(move || ControlThread(controlDataInReadEnd, controlDataOutWriteEnd));
 
@@ -900,31 +900,31 @@ pub fn InitNetworkStatCapture() -> Result<(), NetworkStatError> {
 
 pub fn GetNetworkRawStat() -> Result<NetworkRawStat, NetworkStatError> {
     // signal to control thread to get data
-    controlDataInWriteEnd.lock()?.as_ref().unwrap().send(())?;
+    CONTROL_DATA_IN_WRITE_END.lock()?.as_ref().unwrap().send(())?;
 
     // get data from control thread
-    Ok(controlDataOutReadEnd.lock()?.as_ref().unwrap().recv()?)
+    Ok(CONTROL_DATA_IN_READ_END.lock()?.as_ref().unwrap().recv()?)
 }
 
 #[derive(Debug)]
 pub enum NetworkStatError {
-    CONVERT_ERROR,
-    CHANNEL_SEND_ERROR,
-    CHANNEL_RECV_ERROR,
-    PARSE_INT_ERROR(std::num::ParseIntError),
-    PCAP_ERROR(pcap::Error),
-    UNKNOWN_VLAN_TAG(u16),
-    UNKNOWN_PROTOCOL(u16),
-    IPV4_PACKET_LENGTH_ERROR(usize),
-    IPV4_PACKET_VERSION_ERROR(u8),
-    IPV6_PACKET_LENGTH_ERROR(usize),
-    IPV6_PACKET_VERSION_ERROR(u8),
-    IPV6_UNKNOWN_OPTIONAL_HEADER_TYPE(u8),
-    POISON_MUTEX,
-    UNSUPPORTED_PROTOCOL(u8),
-    IO_ERROR(io::Error),
-    COMMON_ERROR(CommonError),
-    CONFIG_ERROR(ConfigError),
+    ConvertErr,
+    ChannelSendErr,
+    ChannelRecvErr,
+    ParseIntErr(std::num::ParseIntError),
+    PcapErr(pcap::Error),
+    UnknownVLANTag(u16),
+    UnknownProtocol(u16),
+    Ipv4PacketLenErr(usize),
+    Ipv4PacketVersionErr(u8),
+    Ipv6PacketLenErr(usize),
+    Ipv6PacketVersionErr(u8),
+    Ipv6UnknownOptionalHeaderType(u8),
+    PoisonMutex,
+    UnsupportedProtocol(u8),
+    IOErr(io::Error),
+    CommonErr(CommonError),
+    ConfigErr(ConfigError),
 }
 
 impl std::error::Error for NetworkStatError {}
@@ -932,41 +932,41 @@ impl std::error::Error for NetworkStatError {}
 impl fmt::Display for NetworkStatError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let result = match self {
-            Self::CONVERT_ERROR => String::from(format!("Convert error")),
-            Self::CHANNEL_SEND_ERROR => String::from(format!("Channel send error")),
-            Self::CHANNEL_RECV_ERROR => String::from(format!("Channel recv error")),
-            Self::PARSE_INT_ERROR(error) => String::from(format!("Parse integer error: {}", error)),
+            Self::ConvertErr => String::from(format!("Convert error")),
+            Self::ChannelSendErr => String::from(format!("Channel send error")),
+            Self::ChannelRecvErr => String::from(format!("Channel recv error")),
+            Self::ParseIntErr(error) => String::from(format!("Parse integer error: {}", error)),
 
-            Self::PCAP_ERROR(error) => String::from(format!("Pcap error: {}", error)),
-            Self::UNKNOWN_VLAN_TAG(vlanTag) => {
+            Self::PcapErr(error) => String::from(format!("Pcap error: {}", error)),
+            Self::UnknownVLANTag(vlanTag) => {
                 String::from(format!("Unknown vlan tag: {}", vlanTag))
             }
-            Self::UNKNOWN_PROTOCOL(protocol) => {
+            Self::UnknownProtocol(protocol) => {
                 String::from(format!("Unknown protocol: {}", protocol))
             }
-            Self::IPV4_PACKET_LENGTH_ERROR(len) => {
+            Self::Ipv4PacketLenErr(len) => {
                 String::from(format!("Ipv4 packet length error: {}", len))
             }
-            Self::IPV4_PACKET_VERSION_ERROR(version) => {
+            Self::Ipv4PacketVersionErr(version) => {
                 String::from(format!("Ipv4 packet version error: {}", version))
             }
-            Self::IPV6_PACKET_LENGTH_ERROR(len) => {
+            Self::Ipv6PacketLenErr(len) => {
                 String::from(format!("Ipv6 packet length error: {}", len))
             }
-            Self::IPV6_PACKET_VERSION_ERROR(version) => {
+            Self::Ipv6PacketVersionErr(version) => {
                 String::from(format!("Ipv6 packet version error: {}", version))
             }
-            Self::IPV6_UNKNOWN_OPTIONAL_HEADER_TYPE(headerType) => String::from(format!(
+            Self::Ipv6UnknownOptionalHeaderType(headerType) => String::from(format!(
                 "Ipv6 unknown optional header error: {}",
                 headerType
             )),
-            Self::POISON_MUTEX => String::from(format!("Mutex poison error")),
-            Self::UNSUPPORTED_PROTOCOL(protocol) => {
+            Self::PoisonMutex => String::from(format!("Mutex poison error")),
+            Self::UnsupportedProtocol(protocol) => {
                 String::from(format!("Unsupported protocol: {}", protocol))
             }
-            Self::IO_ERROR(error) => String::from(format!("IO error: {}", error)),
-            Self::COMMON_ERROR(error) => String::from(format!("Common error: {}", error)),
-            Self::CONFIG_ERROR(configError) => {
+            Self::IOErr(error) => String::from(format!("IO error: {}", error)),
+            Self::CommonErr(error) => String::from(format!("Common error: {}", error)),
+            Self::ConfigErr(configError) => {
                 String::from(format!("Config error: {}", configError))
             }
         };
@@ -977,48 +977,48 @@ impl fmt::Display for NetworkStatError {
 
 impl From<pcap::Error> for NetworkStatError {
     fn from(error: pcap::Error) -> Self {
-        Self::PCAP_ERROR(error)
+        Self::PcapErr(error)
     }
 }
 
 impl From<std::num::ParseIntError> for NetworkStatError {
     fn from(error: std::num::ParseIntError) -> Self {
-        Self::PARSE_INT_ERROR(error)
+        Self::ParseIntErr(error)
     }
 }
 
 impl<T> From<std::sync::PoisonError<T>> for NetworkStatError {
     fn from(_: std::sync::PoisonError<T>) -> Self {
-        Self::POISON_MUTEX
+        Self::PoisonMutex
     }
 }
 
 impl<T> From<mpsc::SendError<T>> for NetworkStatError {
     fn from(_: mpsc::SendError<T>) -> Self {
-        Self::CHANNEL_SEND_ERROR
+        Self::ChannelSendErr
     }
 }
 
 impl From<mpsc::RecvError> for NetworkStatError {
     fn from(_: mpsc::RecvError) -> Self {
-        Self::CHANNEL_RECV_ERROR
+        Self::ChannelRecvErr
     }
 }
 
 impl From<io::Error> for NetworkStatError {
     fn from(error: io::Error) -> Self {
-        Self::IO_ERROR(error)
+        Self::IOErr(error)
     }
 }
 
 impl From<CommonError> for NetworkStatError {
     fn from(error: CommonError) -> Self {
-        Self::COMMON_ERROR(error)
+        Self::CommonErr(error)
     }
 }
 
 impl From<ConfigError> for NetworkStatError {
     fn from(error: ConfigError) -> Self {
-        Self::CONFIG_ERROR(error)
+        Self::ConfigErr(error)
     }
 }

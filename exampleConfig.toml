@@ -1,27 +1,27 @@
 # whether kernel is < 4.1 or not
-oldKernel = true
+old_kernel = true
 
-listenAddress = "127.0.0.1:6666"
-captureSizeLimit = 2048
+listen_addr = "127.0.0.1:6666"
+capture_size_limit = 2048
 
 # in nano seconds, 1 milliseconds
-controlCommandReceiveTimeout = 1_000_000
+control_command_receive_timeout = 1_000_000
 
 # in nano seconds, 0.5 milliseconds
-captureThreadReceiveTimeout = 500_000
+capture_thread_receive_timeout = 500_000
 
 # cpu string to capture, this only affect task dead event, but need to be larger than total cpu so thing works correctly
 # the string also need to be smaller than 32 characters
-cpuToCapture = "1-1024"
+cpu_to_capture = "1-1024"
 
 # whether the json output is formatted
-printPrettyOutput = true
+print_pretty_output = true
 
 # the list of containers and pid to monitor, each section is an entry to containerList
 # / namespace is the root namespace
-[[monitorTargets]]
-containerName = "/"
-pidList = [ 1 ]
+[[monitor_targets]]
+container_name = "/"
+pid_list = [ 1 ]
 
 
 

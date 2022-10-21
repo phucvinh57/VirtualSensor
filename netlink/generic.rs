@@ -108,7 +108,7 @@ impl GenericNetlinkMessageAttribute {
     pub fn to_byte_array(&self) -> Vec<u8> {
         let mut result = Vec::new();
         let header = NetlinkAttributeHeader::new(self.payload.len(), self.attribute_type.into());
-        result.append(&mut header.ToByteArray());
+        result.append(&mut header.to_byte_array());
         common::align_buffer(&mut result, Self::PAYLOAD_ALIGN);
         result.extend_from_slice(&self.payload[..]);
         result
@@ -147,7 +147,7 @@ impl GenericNetlinkMessageAttributeType {
 
 impl Into<NetlinkMessageAttributeType> for GenericNetlinkMessageAttributeType {
     fn into(self) -> NetlinkMessageAttributeType {
-        NetlinkMessageAttributeType::New(self.0)
+        NetlinkMessageAttributeType::new(self.0)
     }
 }
 
@@ -621,23 +621,23 @@ pub struct GenericNetlinkConnection {
 impl GenericNetlinkConnection {
     pub fn new() -> Result<Self, GenericError> {
         Ok(Self {
-            netlink_conn: NetlinkConnection::new(NetlinkProtocol::GENERIC)?,
+            netlink_conn: NetlinkConnection::new(NetlinkProtocol::Generic)?,
         })
     }
 
     pub fn send(&self, message: GenericNetlinkMessage) -> Result<(), GenericError> {
-        let netlink_msg = NetlinkMessage::New(
+        let netlink_msg = NetlinkMessage::new(
             message.message_type.into(),
-            &[NetlinkMessageFlag::REQUEST],
+            &[NetlinkMessageFlag::Request],
             NetlinkMessagePayload::GENERIC(message),
         );
 
-        self.netlink_conn.Send(netlink_msg)?;
+        self.netlink_conn.send(netlink_msg)?;
         Ok(())
     }
 
     pub fn recv(&self) -> Result<GenericNetlinkMessage, GenericError> {
-        let netlink_msg = self.netlink_conn.Recv()?;
+        let netlink_msg = self.netlink_conn.recv()?;
 
         match netlink_msg.payload {
             NetlinkMessagePayload::GENERIC(tmp) => Ok(tmp),

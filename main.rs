@@ -1,5 +1,8 @@
-mod NetworkStat;
-mod Process;
+#[allow(non_snake_case)]
+#[allow(dead_code)]
+
+mod network_stat;
+mod process;
 mod common;
 mod config;
 mod netlink;
@@ -22,19 +25,19 @@ use serde_json;
 
 use crate::config::ConfigError;
 use crate::taskstat::{TaskStatsConnection, TaskStatsError};
-use crate::NetworkStat::{NetworkRawStat, NetworkStatError};
-use crate::Process::{Pid, ProcessError};
+use crate::network_stat::{NetworkRawStat, NetworkStatError};
+use crate::process::{Pid, ProcessError};
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct ContainerStat {
-    containerName: String,
-    processes: Vec<Process::Process>,
+    container_name: String,
+    processes: Vec<process::Process>,
 }
 
 impl ContainerStat {
-    pub fn New(containerName: String) -> Self {
+    pub fn new(container_name: String) -> Self {
         Self {
-            containerName,
+            container_name,
             processes: Vec::new(),
         }
     }
@@ -42,33 +45,33 @@ impl ContainerStat {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct TotalStat {
-    containerStats: Vec<ContainerStat>,
-    networkRawStat: NetworkRawStat,
+    container_stats: Vec<ContainerStat>,
+    network_rawstat: NetworkRawStat,
 }
 
 impl TotalStat {
-    pub fn New() -> Self {
+    pub fn new() -> Self {
         Self {
-            containerStats: Vec::new(),
-            networkRawStat: NetworkRawStat::New(),
+            container_stats: Vec::new(),
+            network_rawstat: NetworkRawStat::new(),
         }
     }
 }
 
-fn GetProcessesStats(
-    realPidList: &[Pid],
-    taskStatsConnection: &mut TaskStatsConnection,
-    networkRawStat: &mut NetworkRawStat,
-) -> Result<Vec<Process::Process>, DaemonError> {
+fn get_processes_stats(
+    real_pid_list: &[Pid],
+    taskstats_conn: &mut TaskStatsConnection,
+    net_rawstat: &mut NetworkRawStat,
+) -> Result<Vec<process::Process>, DaemonError> {
     let mut processes = Vec::new();
 
-    for currentRealPid in realPidList {
-        if let Ok(mut newProcess) = Process::GetRealProcess(currentRealPid) {
-            if newProcess
-                .BuildProcessTree(taskStatsConnection, networkRawStat)
+    for curr_real_pid in real_pid_list {
+        if let Ok(mut new_proc) = process::GetRealProcess(curr_real_pid) {
+            if new_proc
+                .BuildProcessTree(taskstats_conn, net_rawstat)
                 .is_ok()
             {
-                processes.push(newProcess);
+                processes.push(new_proc);
             }
         }
     }
@@ -76,41 +79,41 @@ fn GetProcessesStats(
     Ok(processes)
 }
 
-fn ListenThread() -> Result<(), DaemonError> {
+fn listen_thread() -> Result<(), DaemonError> {
     // create new taskstat connection
-    let mut taskStatsConnection = TaskStatsConnection::New()?;
+    let mut taskstats_conn = TaskStatsConnection::new()?;
 
     // create socket
-    let listener = TcpListener::bind(&config::GetGlobalConfig()?.ListenAddress())?;
+    let listener = TcpListener::bind(&config::get_glob_conf()?.get_listen_addr())?;
 
     // listen for connection
     loop {
         match listener.accept() {
-            Ok((mut stream, mut _peerAddr)) => {
-                let mut totalStat = TotalStat::New();
+            Ok((mut stream, mut _peer_addr)) => {
+                let mut total_stat = TotalStat::new();
 
                 // get network raw stat
-                totalStat.networkRawStat = NetworkStat::GetNetworkRawStat()?;
+                total_stat.network_rawstat = network_stat::GetNetworkRawStat()?;
 
                 // get global config
-                let globalConfig = config::GetGlobalConfig().unwrap();
+                let glob_conf = config::get_glob_conf().unwrap();
 
                 // for each monitor target
-                'monitorLoop: for monitorTarget in &globalConfig.MonitorTargets() {
+                'monitorLoop: for monitor_targets in &glob_conf.get_monitor_targets() {
                     // get needed process list
-                    let realPidList = if monitorTarget.containerName != "/" {
+                    let real_pid_list = if monitor_targets.container_name != "/" {
                         let mut result = Vec::new();
 
                         // get all process belong to that container
-                        let commandOutput = match Command::new("docker")
-                            .args(["top", &monitorTarget.containerName])
+                        let cmd_output = match Command::new("docker")
+                            .args(["top", &monitor_targets.container_name])
                             .output()
                         {
                             Ok(output) => output,
                             Err(_) => continue,
                         };
 
-                        let lines: Vec<&str> = std::str::from_utf8(&commandOutput.stdout)
+                        let lines: Vec<&str> = std::str::from_utf8(&cmd_output.stdout)
                             .unwrap()
                             .lines()
                             .skip(1)
@@ -118,53 +121,53 @@ fn ListenThread() -> Result<(), DaemonError> {
 
                         for line in lines {
                             // get that process pid
-                            let realPid = Pid::New(
+                            let real_pid = Pid::New(
                                 line.split_whitespace().collect::<Vec<&str>>()[1].parse()?,
                             );
 
-                            if globalConfig.IsOldKernel() {
-                                result.push(realPid);
+                            if glob_conf.is_old_kernel() {
+                                result.push(real_pid);
                                 continue;
                             }
 
                             // get pid inside namespace
-                            let statusFileContent =
-                                match fs::read_to_string(format!("/proc/{}/status", realPid)) {
+                            let file_status_content =
+                                match fs::read_to_string(format!("/proc/{}/status", real_pid)) {
                                     Ok(content) => content,
                                     Err(_) => continue 'monitorLoop,
                                 };
 
-                            let contentLines: Vec<&str> = statusFileContent.lines().collect();
+                            let content_lines: Vec<&str> = file_status_content.lines().collect();
 
                             // get pid
-                            let pids = contentLines[12].split_whitespace().collect::<Vec<&str>>();
+                            let pids = content_lines[12].split_whitespace().collect::<Vec<&str>>();
                             let pid = Pid::try_from(pids[pids.len() - 1]).unwrap();
 
                             // check if pid is needed
-                            if monitorTarget.pidList.contains(&pid) {
-                                result.push(realPid);
+                            if monitor_targets.pid_list.contains(&pid) {
+                                result.push(real_pid);
                             }
                         }
 
                         result
                     } else {
-                        monitorTarget.pidList.clone()
+                        monitor_targets.pid_list.clone()
                     };
 
                     // get stats
-                    match GetProcessesStats(
-                        &realPidList,
-                        &mut taskStatsConnection,
-                        &mut totalStat.networkRawStat,
+                    match get_processes_stats(
+                        &real_pid_list,
+                        &mut taskstats_conn,
+                        &mut total_stat.network_rawstat,
                     ) {
                         Ok(stats) => {
                             // add stat to new container stat
-                            let containerStat = ContainerStat {
-                                containerName: monitorTarget.containerName.clone(),
+                            let container_stat = ContainerStat {
+                                container_name: monitor_targets.container_name.clone(),
                                 processes: stats,
                             };
 
-                            totalStat.containerStats.push(containerStat);
+                            total_stat.container_stats.push(container_stat);
                         }
                         Err(err) => {
                             println!("error: {}", err);
@@ -174,14 +177,14 @@ fn ListenThread() -> Result<(), DaemonError> {
                 }
 
                 // clean up network raw stat
-                totalStat.networkRawStat.RemoveUsedUniConnectionStats();
+                total_stat.network_rawstat.RemoveUsedUniConnectionStats();
 
                 // return result
-                if config::GetGlobalConfig().unwrap().PrintPrettyOutput() {
+                if config::get_glob_conf().unwrap().is_print_pretty_output() {
                     let _ =
-                        stream.write(serde_json::to_string_pretty(&totalStat).unwrap().as_bytes());
+                        stream.write(serde_json::to_string_pretty(&total_stat).unwrap().as_bytes());
                 } else {
-                    let _ = stream.write(serde_json::to_string(&totalStat).unwrap().as_bytes());
+                    let _ = stream.write(serde_json::to_string(&total_stat).unwrap().as_bytes());
                 }
             }
             Err(err) => {
@@ -195,37 +198,37 @@ fn main() -> Result<(), DaemonError> {
     // init config
     if env::args().len() != 2 {
         println!("Usage: ./daemon [config path]");
-        return Err(DaemonError::NO_CONFIG_PATH);
+        return Err(DaemonError::NoConfigPath);
     }
 
-    config::InitGlobalConfig(&env::args().nth(1).unwrap())?;
+    config::init_glob_conf(&env::args().nth(1).unwrap())?;
 
     // init network capture
-    NetworkStat::InitNetworkStatCapture()?;
+    network_stat::InitNetworkStatCapture()?;
 
     // init listen thread
-    let listenThread = thread::spawn(|| ListenThread());
+    let listen_thread = thread::spawn(|| listen_thread());
 
     // wait forever
-    match listenThread.join() {
-        Err(listenThreadError) => return Err(DaemonError::LISTEN_THREAD_ERROR(listenThreadError)),
+    match listen_thread.join() {
+        Err(listen_thread_err) => return Err(DaemonError::ListenThreadErr(listen_thread_err)),
         _ => (),
     }
 
-    Err(DaemonError::UNIMPLEMENTED_ERROR)
+    Err(DaemonError::UnimplementedErr)
 }
 
 #[derive(Debug)]
 pub enum DaemonError {
-    NETWROK_STAT_ERROR(NetworkStatError),
-    TASKSTATS_ERROR(TaskStatsError),
-    IO_ERROR(io::Error),
-    NO_CONFIG_PATH,
-    CONFIG_ERROR(ConfigError),
-    PROCESS_ERROR(ProcessError),
-    LISTEN_THREAD_ERROR(Box<dyn Any + Send>),
-    PARSE_INT_ERROR(std::num::ParseIntError),
-    UNIMPLEMENTED_ERROR,
+    NetworkStatErr(NetworkStatError),
+    TaskstatsErr(TaskStatsError),
+    IOErr(io::Error),
+    NoConfigPath,
+    ConfigErr(ConfigError),
+    ProcessErr(ProcessError),
+    ListenThreadErr(Box<dyn Any + Send>),
+    ParseIntErr(std::num::ParseIntError),
+    UnimplementedErr,
 }
 
 impl std::error::Error for DaemonError {}
@@ -233,25 +236,25 @@ impl std::error::Error for DaemonError {}
 impl fmt::Display for DaemonError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let result = match self {
-            Self::NETWROK_STAT_ERROR(networkStatError) => {
-                String::from(format!("Network stat error: {}", networkStatError))
+            Self::NetworkStatErr(netstat_err) => {
+                String::from(format!("Network stat error: {}", netstat_err))
             }
-            Self::TASKSTATS_ERROR(taskStatsError) => {
-                String::from(format!("Taskstat error: {}", taskStatsError))
+            Self::TaskstatsErr(taskstats_err) => {
+                String::from(format!("Taskstat error: {}", taskstats_err))
             }
-            Self::IO_ERROR(ioError) => String::from(format!("IO error: {}", ioError)),
-            Self::NO_CONFIG_PATH => String::from("No config path"),
-            Self::CONFIG_ERROR(configError) => {
-                String::from(format!("Config error: {}", configError))
+            Self::IOErr(io_err) => String::from(format!("IO error: {}", io_err)),
+            Self::NoConfigPath => String::from("No config path"),
+            Self::ConfigErr(conf_err) => {
+                String::from(format!("Config error: {}", conf_err))
             }
-            Self::PROCESS_ERROR(processError) => {
-                String::from(format!("Process error: {}", processError))
+            Self::ProcessErr(proc_err) => {
+                String::from(format!("Process error: {}", proc_err))
             }
-            Self::LISTEN_THREAD_ERROR(listenThreadError) => {
-                String::from(format!("Listen thread error: {:?}", listenThreadError))
+            Self::ListenThreadErr(listen_thread_err) => {
+                String::from(format!("Listen thread error: {:?}", listen_thread_err))
             }
-            Self::PARSE_INT_ERROR(error) => String::from(format!("Parse integer error: {}", error)),
-            Self::UNIMPLEMENTED_ERROR => String::from("This error is not implemented"),
+            Self::ParseIntErr(error) => String::from(format!("Parse integer error: {}", error)),
+            Self::UnimplementedErr => String::from("This error is not implemented"),
         };
 
         write!(f, "{}", result)
@@ -260,36 +263,36 @@ impl fmt::Display for DaemonError {
 
 impl From<NetworkStatError> for DaemonError {
     fn from(error: NetworkStatError) -> Self {
-        Self::NETWROK_STAT_ERROR(error)
+        Self::NetworkStatErr(error)
     }
 }
 
 impl From<TaskStatsError> for DaemonError {
     fn from(error: TaskStatsError) -> Self {
-        Self::TASKSTATS_ERROR(error)
+        Self::TaskstatsErr(error)
     }
 }
 
 impl From<io::Error> for DaemonError {
     fn from(error: io::Error) -> Self {
-        Self::IO_ERROR(error)
+        Self::IOErr(error)
     }
 }
 
 impl From<ConfigError> for DaemonError {
     fn from(error: ConfigError) -> Self {
-        Self::CONFIG_ERROR(error)
+        Self::ConfigErr(error)
     }
 }
 
 impl From<ProcessError> for DaemonError {
     fn from(error: ProcessError) -> Self {
-        Self::PROCESS_ERROR(error)
+        Self::ProcessErr(error)
     }
 }
 
 impl From<std::num::ParseIntError> for DaemonError {
     fn from(error: std::num::ParseIntError) -> Self {
-        Self::PARSE_INT_ERROR(error)
+        Self::ParseIntErr(error)
     }
 }

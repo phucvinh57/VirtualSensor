@@ -41,33 +41,33 @@ use generic::{GenericError, GenericNetlinkMessage, GenericNetlinkMessageType};
 #[derive(Clone, Copy, Debug)]
 #[repr(C, packed)]
 struct NetlinkMessageHeader {
-    messageLength: u32,         // included header length
-    messageType: u16,           // depend on protocol
-    messageFlags: u16,          // used by kernel
-    messageSequenceNumber: u32, // kernel don't care about this
-    messagePid: u32,            // kernel don't care about this
+    msg_len: u32,         // included header length
+    msg_type: u16,           // depend on protocol
+    msg_flags: u16,          // used by kernel
+    msg_seq_num: u32, // kernel don't care about this
+    msg_pid: u32,            // kernel don't care about this
 }
 
 impl NetlinkMessageHeader {
     const LENGTH: usize = mem::size_of::<NetlinkMessageHeader>();
 
-    pub fn New(
-        payloadLength: usize,
-        messageType: u16,
-        messageFlags: u16,
-        messageSequenceNumber: u32,
-        messagePid: u32,
+    pub fn new(
+        payload_len: usize,
+        msg_type: u16,
+        msg_flags: u16,
+        msg_seq_num: u32,
+        msg_pid: u32,
     ) -> Self {
         Self {
-            messageLength: (Self::LENGTH + payloadLength) as u32,
-            messageType,
-            messageFlags,
-            messageSequenceNumber,
-            messagePid,
+            msg_len: (Self::LENGTH + payload_len) as u32,
+            msg_type,
+            msg_flags,
+            msg_seq_num,
+            msg_pid,
         }
     }
 
-    pub fn ToByteArray(&self) -> Vec<u8> {
+    pub fn to_byte_array(&self) -> Vec<u8> {
         let mut result = Vec::new();
         result.extend_from_slice(unsafe {
             slice::from_raw_parts(self as *const _ as *const u8, Self::LENGTH)
@@ -75,10 +75,10 @@ impl NetlinkMessageHeader {
         result
     }
 
-    pub fn FromByteArray(buf: &[u8]) -> Result<Self, NetlinkError> {
+    pub fn from_byte_array(buf: &[u8]) -> Result<Self, NetlinkError> {
         // check size
         if buf.len() < Self::LENGTH {
-            return Err(NetlinkError::MESSAGE_HEADER_ERROR);
+            return Err(NetlinkError::MsgHeaderErr);
         }
 
         Ok(unsafe { *(buf as *const _ as *mut Self) })
@@ -87,27 +87,27 @@ impl NetlinkMessageHeader {
 
 #[derive(Clone, Copy, Debug)]
 pub enum NetlinkProtocol {
-    ROUTE = 0,
-    UNUSED = 1,
-    USERSOCK = 2,
-    FIREWALL = 3,
-    SOCK_DIAG = 4,
-    NETFILTER_ULOG = 5,
-    XFRM = 6,
-    SELINUX = 7,
+    Route = 0,
+    Unused = 1,
+    Usersock = 2,
+    Firewall = 3,
+    SockDiag = 4,
+    NetfilterUlog = 5,
+    Xfrm = 6,
+    SeLinux = 7,
     ISCSI = 8,
-    AUDIT = 9,
-    FIB_LOOKUP = 10,
-    CONNECTOR = 11,
-    NETFILTER = 12,
-    IP6_FIREWALL = 13,
-    DECNET_ROUTING_MESSAGE = 14,
-    KOBJECT_UEVENT = 15,
-    GENERIC = 16,
-    SCSI_TRANSPORT = 18,
-    ECRYPTFS = 19,
+    Audit = 9,
+    FIBLookup = 10,
+    Connector = 11,
+    Netfilter = 12,
+    Ip6Firewall = 13,
+    DecnetRoutingMsg = 14,
+    KobjectUEvent = 15,
+    Generic = 16,
+    SCSITransport = 18,
+    EcryptFs = 19,
     RDMA = 20,
-    CRYPTO = 21,
+    Crypto = 21,
     SMC = 22,
 }
 
@@ -171,48 +171,49 @@ pub enum NetlinkMessagePayload {
 impl NetlinkMessagePayload {
     const ALIGN: usize = 4;
 
-    pub fn ToByteArray(&self) -> Vec<u8> {
+    pub fn to_byte_array(&self) -> Vec<u8> {
         match self {
-            Self::GENERIC(genericPayload) => genericPayload.to_byte_array(),
+            Self::GENERIC(generic_payload) => generic_payload.to_byte_array(),
             Self::UNIMPLEMENTED => panic!("Unimplemented netlink message payload"),
         }
     }
 }
 
 #[derive(Clone, Copy, Debug)]
+#[allow(unused)]
 pub enum NetlinkMessagePayloadType {
-    GENERIC,
-    UNIMPLEMENTED,
+    Generic,
+    Unimplemented,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
 pub enum NetlinkMessageFlag {
     // normal flags
-    REQUEST,           // It is request message
-    MULTIPART,         // Multipart message, terminated by NLMSG_DONE
-    ACK,               // Reply with ack, with zero or error code
-    ECHO,              // Echo this request
-    DUMP_INCONSISTENT, // Dump was inconsistent due to sequence change
-    DUMP_FILTERED,     // Dump was filtered as requested
+    Request,           // It is request message
+    Multipart,         // Multipart message, terminated by NLMSG_DONE
+    Ack,               // Reply with ack, with zero or error code
+    Echo,              // Echo this request
+    DumpInconsistent, // Dump was inconsistent due to sequence change
+    DumpFiltered,     // Dump was filtered as requested
 
     // Modifiers to GET request
-    ROOT,   // specify tree	root
-    MATCH,  // return all matching
-    ATOMIC, // atomic GET
-    DUMP,
+    Root,   // specify tree	root
+    Match,  // return all matching
+    Atomic, // atomic GET
+    Dump,
 
     // Modifiers to NEW request
-    REPLACE, // Override existing
-    EXCL,    // Do not touch, if it exists
-    CREATE,  // Create, if it does not exist
-    APPEND,  // Add to end of list
+    Replace, // Override existing
+    Excl,    // Do not touch, if it exists
+    Create,  // Create, if it does not exist
+    Append,  // Add to end of list
 
     // Modifiers to DELETE request
-    NO_RECURSIVE, // Do not delete recursively
+    NoRecursive, // Do not delete recursively
 
     // Flags for ACK message
-    CAPPED,   // request was capped
-    ACK_TLVS, // extended ACK TVLs were included
+    Capped,   // request was capped
+    AckTlvs, // extended ACK TVLs were included
 }
 
 impl NetlinkMessageFlag {
@@ -238,119 +239,119 @@ impl NetlinkMessageFlag {
     const CAPPED_VALUE: u16 = 0x100;
     const ACK_TLVS_VALUE: u16 = 0x200;
 
-    pub fn ToU16(&self) -> u16 {
+    pub fn to_u16(&self) -> u16 {
         match self {
-            Self::REQUEST => Self::REQUEST_VALUE,
-            Self::MULTIPART => Self::MULTIPART_VALUE,
-            Self::ACK => Self::ACK_VALUE,
-            Self::ECHO => Self::ECHO_VALUE,
-            Self::DUMP_INCONSISTENT => Self::DUMP_INCONSISTENT_VALUE,
-            Self::DUMP_FILTERED => Self::DUMP_FILTERED_VALUE,
-            Self::ROOT => Self::ROOT_VALUE,
-            Self::MATCH => Self::MATCH_VALUE,
-            Self::ATOMIC => Self::ATOMIC_VALUE,
-            Self::DUMP => Self::DUMP_VALUE,
-            Self::REPLACE => Self::REPLACE_VALUE,
-            Self::EXCL => Self::EXCL_VALUE,
-            Self::CREATE => Self::CREATE_VALUE,
-            Self::APPEND => Self::APPEND_VALUE,
-            Self::NO_RECURSIVE => Self::NO_RECURSIVE_VALUE,
-            Self::CAPPED => Self::CAPPED_VALUE,
-            Self::ACK_TLVS => Self::ACK_TLVS_VALUE,
+            Self::Request => Self::REQUEST_VALUE,
+            Self::Multipart => Self::MULTIPART_VALUE,
+            Self::Ack => Self::ACK_VALUE,
+            Self::Echo => Self::ECHO_VALUE,
+            Self::DumpInconsistent => Self::DUMP_INCONSISTENT_VALUE,
+            Self::DumpFiltered => Self::DUMP_FILTERED_VALUE,
+            Self::Root => Self::ROOT_VALUE,
+            Self::Match => Self::MATCH_VALUE,
+            Self::Atomic => Self::ATOMIC_VALUE,
+            Self::Dump => Self::DUMP_VALUE,
+            Self::Replace => Self::REPLACE_VALUE,
+            Self::Excl => Self::EXCL_VALUE,
+            Self::Create => Self::CREATE_VALUE,
+            Self::Append => Self::APPEND_VALUE,
+            Self::NoRecursive => Self::NO_RECURSIVE_VALUE,
+            Self::Capped => Self::CAPPED_VALUE,
+            Self::AckTlvs => Self::ACK_TLVS_VALUE,
         }
     }
 
-    pub fn FromU16(value: u16) -> Result<Vec<Self>, NetlinkError> {
+    pub fn from_u16(value: u16) -> Result<Vec<Self>, NetlinkError> {
         let mut result = Vec::new();
         let mut tmp = 0;
 
         if value & Self::REQUEST_VALUE != 0 {
-            result.push(Self::REQUEST);
+            result.push(Self::Request);
             tmp |= Self::REQUEST_VALUE;
         }
 
         if value & Self::MULTIPART_VALUE != 0 {
-            result.push(Self::MULTIPART);
+            result.push(Self::Multipart);
             tmp |= Self::MULTIPART_VALUE;
         }
 
         if value & Self::ACK_VALUE != 0 {
-            result.push(Self::ACK);
+            result.push(Self::Ack);
             tmp |= Self::ACK_VALUE;
         }
 
         if value & Self::ECHO_VALUE != 0 {
-            result.push(Self::ECHO);
+            result.push(Self::Echo);
             tmp |= Self::ECHO_VALUE;
         }
 
         if value & Self::DUMP_INCONSISTENT_VALUE != 0 {
-            result.push(Self::DUMP_INCONSISTENT);
+            result.push(Self::DumpInconsistent);
             tmp |= Self::DUMP_INCONSISTENT_VALUE;
         }
 
         if value & Self::DUMP_FILTERED_VALUE != 0 {
-            result.push(Self::DUMP_FILTERED);
+            result.push(Self::DumpFiltered);
             tmp |= Self::DUMP_FILTERED_VALUE;
         }
 
         if value & Self::ROOT_VALUE != 0 {
-            result.push(Self::ROOT);
+            result.push(Self::Root);
             tmp |= Self::ROOT_VALUE;
         }
 
         if value & Self::MATCH_VALUE != 0 {
-            result.push(Self::MATCH);
+            result.push(Self::Match);
             tmp |= Self::MATCH_VALUE;
         }
 
         if value & Self::ATOMIC_VALUE != 0 {
-            result.push(Self::ATOMIC);
+            result.push(Self::Atomic);
             tmp |= Self::ATOMIC_VALUE;
         }
 
         if value & Self::DUMP_VALUE != 0 {
-            result.push(Self::DUMP);
+            result.push(Self::Dump);
             tmp |= Self::DUMP_VALUE;
         }
 
         if value & Self::REPLACE_VALUE != 0 {
-            result.push(Self::REPLACE);
+            result.push(Self::Replace);
             tmp |= Self::REPLACE_VALUE;
         }
 
         if value & Self::EXCL_VALUE != 0 {
-            result.push(Self::EXCL);
+            result.push(Self::Excl);
             tmp |= Self::EXCL_VALUE;
         }
 
         if value & Self::CREATE_VALUE != 0 {
-            result.push(Self::CREATE);
+            result.push(Self::Create);
             tmp |= Self::CREATE_VALUE;
         }
 
         if value & Self::APPEND_VALUE != 0 {
-            result.push(Self::APPEND);
+            result.push(Self::Append);
             tmp |= Self::APPEND_VALUE;
         }
 
         if value & Self::NO_RECURSIVE_VALUE != 0 {
-            result.push(Self::NO_RECURSIVE);
+            result.push(Self::NoRecursive);
             tmp |= Self::NO_RECURSIVE_VALUE;
         }
 
         if value & Self::CAPPED_VALUE != 0 {
-            result.push(Self::CAPPED);
+            result.push(Self::Capped);
             tmp |= Self::CAPPED_VALUE;
         }
 
         if value & Self::ACK_TLVS_VALUE != 0 {
-            result.push(Self::ACK_TLVS);
+            result.push(Self::AckTlvs);
             tmp |= Self::ACK_TLVS_VALUE;
         }
 
         if tmp != value {
-            return Err(NetlinkError::UNKNOWN_MESSAGE_FLAGS(tmp ^ value));
+            return Err(NetlinkError::UnknownMsgFlags(tmp ^ value));
         }
 
         Ok(result)
@@ -359,88 +360,89 @@ impl NetlinkMessageFlag {
 
 #[derive(Clone, Debug)]
 pub struct NetlinkMessage {
-    messageType: NetlinkMessageType,
+    msg_type: NetlinkMessageType,
     flags: Vec<NetlinkMessageFlag>,
     payload: NetlinkMessagePayload,
 }
 
+#[allow(unused)]
 impl NetlinkMessage {
     pub const ALIGN: usize = 4;
 
-    pub fn New(
-        messageType: NetlinkMessageType,
+    pub fn new(
+        msg_type: NetlinkMessageType,
         flags: &[NetlinkMessageFlag],
         payload: NetlinkMessagePayload,
     ) -> Self {
         Self {
-            messageType,
+            msg_type,
             flags: flags.to_vec(),
             payload,
         }
     }
 
-    pub fn Type(&self) -> NetlinkMessagePayloadType {
+    pub fn get_type(&self) -> NetlinkMessagePayloadType {
         match self.payload {
-            NetlinkMessagePayload::GENERIC(_) => NetlinkMessagePayloadType::GENERIC,
-            NetlinkMessagePayload::UNIMPLEMENTED => NetlinkMessagePayloadType::UNIMPLEMENTED,
+            NetlinkMessagePayload::GENERIC(_) => NetlinkMessagePayloadType::Generic,
+            NetlinkMessagePayload::UNIMPLEMENTED => NetlinkMessagePayloadType::Unimplemented,
         }
     }
 
-    pub fn ToByteArray(&self) -> Vec<u8> {
+    pub fn to_byte_array(&self) -> Vec<u8> {
         let mut result = Vec::<u8>::new();
-        let mut payload = self.payload.ToByteArray();
+        let mut payload = self.payload.to_byte_array();
 
         let mut flags = 0;
         for flag in &self.flags {
-            flags |= flag.ToU16();
+            flags |= flag.to_u16();
         }
 
-        let header = NetlinkMessageHeader::New(payload.len(), self.messageType.into(), flags, 0, 0);
+        let header = NetlinkMessageHeader::new(payload.len(), self.msg_type.into(), flags, 0, 0);
 
-        result.append(&mut header.ToByteArray());
+        result.append(&mut header.to_byte_array());
         common::align_buffer(&mut result, NetlinkMessagePayload::ALIGN);
         result.append(&mut payload);
         result
     }
 
-    pub fn FromByteArray(
+    pub fn from_byte_array(
         buf: &[u8],
-        payloadType: NetlinkMessagePayloadType,
+        payload_type: NetlinkMessagePayloadType,
     ) -> Result<Self, NetlinkError> {
-        let netlinkMessageHeader = NetlinkMessageHeader::FromByteArray(&buf)?;
-        let payloadStartIndex =
+        let netlink_msg_header = NetlinkMessageHeader::from_byte_array(&buf)?;
+        let payload_start_idx =
             common::next_align_num(NetlinkMessageHeader::LENGTH, NetlinkMessagePayload::ALIGN);
 
-        println!("{:?}", netlinkMessageHeader.messageLength as u32); // 0
-        println!("{:?}", payloadStartIndex as u32);
+        println!("{:?}", netlink_msg_header.msg_len as u32); // 0
+        println!("{:?}", payload_start_idx as u32);
 
-        let payloadSize = netlinkMessageHeader.messageLength as usize - payloadStartIndex;
-        let flags = NetlinkMessageFlag::FromU16(netlinkMessageHeader.messageFlags)?;
+        let payload_size = netlink_msg_header.msg_len as usize - payload_start_idx;
+        let flags = NetlinkMessageFlag::from_u16(netlink_msg_header.msg_flags)?;
 
         // check for error message
-        if let Ok(StandardNetlinkMessageType::ERROR) = netlinkMessageHeader.messageType.try_into() {
-            let errorCode = i32::from_ne_bytes(
-                buf[payloadStartIndex..payloadStartIndex + 4]
+        if let Ok(StandardNetlinkMessageType::ERROR) = netlink_msg_header.msg_type.try_into() {
+            let err_code = i32::from_ne_bytes(
+                buf[payload_start_idx..payload_start_idx + 4]
                     .try_into()
                     .unwrap(),
             );
-            return Err(NetlinkError::KERNEL_ERROR(errorCode));
+            return Err(NetlinkError::KernelErr(err_code));
         }
 
-        match payloadType {
-            NetlinkMessagePayloadType::GENERIC => {
-                let messageType = GenericNetlinkMessageType::new(netlinkMessageHeader.messageType);
+        match payload_type {
+            NetlinkMessagePayloadType::Generic => {
+                let msg_type = GenericNetlinkMessageType::new(netlink_msg_header.msg_type);
                 let payload = GenericNetlinkMessage::from_byte_array(
-                    &buf[payloadStartIndex..payloadStartIndex + payloadSize],
-                    messageType,
+                    &buf[payload_start_idx..payload_start_idx + payload_size],
+                    msg_type,
                 )?;
-                Ok(NetlinkMessage::New(
-                    messageType.into(),
+                Ok(NetlinkMessage::new(
+                    msg_type.into(),
                     &flags,
                     NetlinkMessagePayload::GENERIC(payload),
                 ))
             }
-            NetlinkMessagePayloadType::UNIMPLEMENTED => {
+            NetlinkMessagePayloadType::Unimplemented => {
                 panic!("Unimplemented netlink message payload type")
             }
         }
@@ -451,20 +453,21 @@ impl NetlinkMessage {
 #[repr(C, packed)]
 struct NetlinkAttributeHeader {
     length: u16,
-    attributeType: u16,
+    attr_type: u16,
 }
 
+#[allow(unused)]
 impl NetlinkAttributeHeader {
     const LENGTH: usize = mem::size_of::<NetlinkAttributeHeader>();
 
-    pub fn new(payloadLength: usize, attributeType: NetlinkMessageAttributeType) -> Self {
+    pub fn new(payload_len: usize, attr_type: NetlinkMessageAttributeType) -> Self {
         Self {
-            length: (payloadLength + Self::LENGTH) as u16,
-            attributeType: attributeType.into(),
+            length: (payload_len + Self::LENGTH) as u16,
+            attr_type: attr_type.into(),
         }
     }
 
-    pub fn ToByteArray(&self) -> Vec<u8> {
+    pub fn to_byte_array(&self) -> Vec<u8> {
         let mut result = Vec::new();
         result.extend_from_slice(unsafe {
             slice::from_raw_parts(self as *const _ as *const u8, Self::LENGTH)
@@ -472,10 +475,10 @@ impl NetlinkAttributeHeader {
         result
     }
 
-    pub fn FromByteArray(buf: &[u8]) -> Result<Self, NetlinkError> {
+    pub fn from_byte_array(buf: &[u8]) -> Result<Self, NetlinkError> {
         // check size
         if buf.len() < Self::LENGTH {
-            return Err(NetlinkError::ATTRIBUTE_HEADER_ERROR);
+            return Err(NetlinkError::AttrHeaderErr);
         }
 
         Ok(unsafe { *(buf as *const _ as *mut Self) })
@@ -486,7 +489,7 @@ impl NetlinkAttributeHeader {
 pub struct NetlinkMessageAttributeType(u16);
 
 impl NetlinkMessageAttributeType {
-    pub fn New(value: u16) -> Self {
+    pub fn new(value: u16) -> Self {
         Self(value)
     }
 }
@@ -498,23 +501,26 @@ impl Into<u16> for NetlinkMessageAttributeType {
 }
 
 #[derive(Clone, Debug)]
+#[allow(unused)]
 pub struct NetlinkMessageAttribute {
-    attributeType: NetlinkMessageAttributeType,
+    attr_type: NetlinkMessageAttributeType,
     payload: Vec<u8>,
 }
 
+#[allow(unused)]
 impl NetlinkMessageAttribute {
     const PAYLOAD_ALIGN: usize = 4;
 
-    pub fn ToByteArray(&self) -> Vec<u8> {
+    pub fn to_byte_array(&self) -> Vec<u8> {
         unimplemented!();
     }
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub struct NetlinkConnection {
     socket: Socket,
-    selfAddress: SocketAddr,
+    self_addr: SocketAddr,
     protocol: NetlinkProtocol,
 }
 
@@ -523,42 +529,42 @@ impl NetlinkConnection {
 
     pub fn new(protocol: NetlinkProtocol) -> Result<Self, NetlinkError> {
         let mut socket = Socket::new(protocols::NETLINK_GENERIC)?;
-        let selfAddress = socket.bind_auto()?;
+        let self_addr = socket.bind_auto()?;
 
         Ok(Self {
             socket,
-            selfAddress,
+            self_addr,
             protocol,
         })
     }
 
-    pub fn Send(&self, message: NetlinkMessage) -> Result<(), NetlinkError> {
-        self.socket.send(&message.ToByteArray(), 0)?;
+    pub fn send(&self, message: NetlinkMessage) -> Result<(), NetlinkError> {
+        self.socket.send(&message.to_byte_array(), 0)?;
         Ok(())
     }
 
-    pub fn Recv(&self) -> Result<NetlinkMessage, NetlinkError> {
+    pub fn recv(&self) -> Result<NetlinkMessage, NetlinkError> {
         let mut buf = [0u8; Self::BUFFER_SIZE];
         self.socket.recv(&mut buf, 0)?;
 
-        let payloadType = match self.protocol {
-            NetlinkProtocol::GENERIC => NetlinkMessagePayloadType::GENERIC,
-            _ => return Err(NetlinkError::UNSUPPORTED_PROTOCOL(self.protocol)),
+        let payload_type = match self.protocol {
+            NetlinkProtocol::Generic => NetlinkMessagePayloadType::Generic,
+            _ => return Err(NetlinkError::UnsupportedProtocol(self.protocol)),
         };
 
-        NetlinkMessage::FromByteArray(&buf, payloadType)
+        NetlinkMessage::from_byte_array(&buf, payload_type)
     }
 }
 
 #[derive(Debug)]
 pub enum NetlinkError {
-    IO_ERROR(io::Error),
-    GENERIC_ERROR(Box<GenericError>),
-    MESSAGE_HEADER_ERROR,
-    ATTRIBUTE_HEADER_ERROR,
-    UNKNOWN_MESSAGE_FLAGS(u16),
-    UNSUPPORTED_PROTOCOL(NetlinkProtocol),
-    KERNEL_ERROR(i32),
+    IOErr(io::Error),
+    GenericErr(Box<GenericError>),
+    MsgHeaderErr,
+    AttrHeaderErr,
+    UnknownMsgFlags(u16),
+    UnsupportedProtocol(NetlinkProtocol),
+    KernelErr(i32),
 }
 
 impl error::Error for NetlinkError {}
@@ -566,18 +572,18 @@ impl error::Error for NetlinkError {}
 impl fmt::Display for NetlinkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let result = match self {
-            Self::IO_ERROR(error) => String::from(format!("IO error: {}", error)),
-            Self::GENERIC_ERROR(error) => String::from(format!("Generic netlink error: {}", error)),
-            Self::MESSAGE_HEADER_ERROR => String::from(format!("Message header error")),
-            Self::ATTRIBUTE_HEADER_ERROR => String::from(format!("Attribute header error")),
-            Self::UNKNOWN_MESSAGE_FLAGS(flags) => {
+            Self::IOErr(error) => String::from(format!("IO error: {}", error)),
+            Self::GenericErr(error) => String::from(format!("Generic netlink error: {}", error)),
+            Self::MsgHeaderErr => String::from(format!("Message header error")),
+            Self::AttrHeaderErr => String::from(format!("Attribute header error")),
+            Self::UnknownMsgFlags(flags) => {
                 String::from(format!("Unknown netlink message flags: {}", flags))
             }
-            Self::UNSUPPORTED_PROTOCOL(protocol) => {
+            Self::UnsupportedProtocol(protocol) => {
                 String::from(format!("Unsupported protocol: {:?}", protocol))
             }
-            Self::KERNEL_ERROR(errorCode) => {
-                String::from(format!("Kernel error code: {}", errorCode))
+            Self::KernelErr(err_code) => {
+                String::from(format!("Kernel error code: {}", err_code))
             }
         };
 
@@ -587,12 +593,12 @@ impl fmt::Display for NetlinkError {
 
 impl From<io::Error> for NetlinkError {
     fn from(error: io::Error) -> Self {
-        Self::IO_ERROR(error)
+        Self::IOErr(error)
     }
 }
 
 impl From<GenericError> for NetlinkError {
     fn from(error: GenericError) -> Self {
-        Self::GENERIC_ERROR(Box::new(error))
+        Self::GenericErr(Box::new(error))
     }
 }

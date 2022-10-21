@@ -13,7 +13,7 @@ use crate::netlink::generic::{
     GenericNetlinkMessage, GenericNetlinkMessageCommand, GenericNetlinkMessageType,
 };
 use crate::netlink::generic::{GenericNetlinkMessageAttribute, GenericNetlinkMessageAttributeType};
-use crate::Process::{Pid, Tid};
+use crate::process::{Pid, Tid};
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
@@ -1306,7 +1306,7 @@ pub struct TaskStatsConnection {
 impl TaskStatsConnection {
     const TASKSTATS_FAMILY_NAME: &'static str = "TASKSTATS";
 
-    pub fn New() -> Result<Self, TaskStatsError> {
+    pub fn new() -> Result<Self, TaskStatsError> {
         let genericNetlinkConnection = GenericNetlinkConnection::new()?;
 
         let mut getFamilyIdMessage =
