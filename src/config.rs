@@ -62,7 +62,6 @@ fn nanosecs_to_duration<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Du
 
 pub fn init_glob_conf(conf_path: &str) -> Result<(), ConfigError> {
     let config = DaemonConfig::from_config_file(conf_path)?;
-    println!("{:?}", config);
 
     unsafe {
         GLOBAL_CONFIG = Some(Arc::new(config));

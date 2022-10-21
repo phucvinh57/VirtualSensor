@@ -15,4 +15,4 @@ lint:
 	cargo clippy --fix
 
 run:
-	sudo ./sensor exampleConfig.toml
+	sudo ./sensor config.toml

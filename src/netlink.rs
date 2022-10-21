@@ -413,9 +413,6 @@ impl NetlinkMessage {
         let payload_start_idx =
             common::next_align_num(NetlinkMessageHeader::LENGTH, NetlinkMessagePayload::ALIGN);
 
-        println!("{:?}", netlink_msg_header.msg_len as u32); // 0
-        println!("{:?}", payload_start_idx as u32);
-
         let payload_size = netlink_msg_header.msg_len as usize - payload_start_idx;
         let flags = NetlinkMessageFlag::from_u16(netlink_msg_header.msg_flags)?;
 

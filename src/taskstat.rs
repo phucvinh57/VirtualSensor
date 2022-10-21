@@ -105,12 +105,12 @@ impl TaskStatsRawV8 {
         // check version
         let version = unsafe { *(buf as *const _ as *const u16) };
         if version != Self::VERSION {
-            return Err(TaskStatsError::UNSUPPORTED_TASKSTATS_VERSION(version));
+            return Err(TaskStatsError::UnsupportedTaskstatsVersion(version));
         }
 
         // check size
         if buf.len() < Self::LENGTH {
-            return Err(TaskStatsError::TASK_STRUCT_ERROR(buf.to_vec()));
+            return Err(TaskStatsError::TaskStructErr(buf.to_vec()));
         }
 
         Ok(unsafe { *(buf as *const _ as *mut Self) })
@@ -298,12 +298,12 @@ impl TaskStatsRawV9 {
         // check version
         let version = unsafe { *(buf as *const _ as *const u16) };
         if version != Self::VERSION {
-            return Err(TaskStatsError::UNSUPPORTED_TASKSTATS_VERSION(version));
+            return Err(TaskStatsError::UnsupportedTaskstatsVersion(version));
         }
 
         // check size
         if buf.len() < Self::LENGTH {
-            return Err(TaskStatsError::TASK_STRUCT_ERROR(buf.to_vec()));
+            return Err(TaskStatsError::TaskStructErr(buf.to_vec()));
         }
 
         Ok(unsafe { *(buf as *const _ as *mut Self) })
@@ -495,12 +495,12 @@ impl TaskStatsRawV10 {
         // check version
         let version = unsafe { *(buf as *const _ as *const u16) };
         if version != Self::VERSION {
-            return Err(TaskStatsError::UNSUPPORTED_TASKSTATS_VERSION(version));
+            return Err(TaskStatsError::UnsupportedTaskstatsVersion(version));
         }
 
         // check size
         if buf.len() < Self::LENGTH {
-            return Err(TaskStatsError::TASK_STRUCT_ERROR(buf.to_vec()));
+            return Err(TaskStatsError::TaskStructErr(buf.to_vec()));
         }
 
         Ok(unsafe { *(buf as *const _ as *mut Self) })
@@ -695,12 +695,12 @@ impl TaskStatsRawV11 {
         // check version
         let version = unsafe { *(buf as *const _ as *const u16) };
         if version != Self::VERSION {
-            return Err(TaskStatsError::UNSUPPORTED_TASKSTATS_VERSION(version));
+            return Err(TaskStatsError::UnsupportedTaskstatsVersion(version));
         }
 
         // check size
         if buf.len() < Self::LENGTH {
-            return Err(TaskStatsError::TASK_STRUCT_ERROR(buf.to_vec()));
+            return Err(TaskStatsError::TaskStructErr(buf.to_vec()));
         }
 
         Ok(unsafe { *(buf as *const _ as *mut Self) })
@@ -826,7 +826,7 @@ impl TaskStatsRaw {
             9 => Ok(Self::V9(TaskStatsRawV9::from_byte_array(buf)?)),
             10 => Ok(Self::V10(TaskStatsRawV10::from_byte_array(buf)?)),
             11 => Ok(Self::V11(TaskStatsRawV11::from_byte_array(buf)?)),
-            _ => Err(TaskStatsError::UNSUPPORTED_TASKSTATS_VERSION(version)),
+            _ => Err(TaskStatsError::UnsupportedTaskstatsVersion(version)),
         }
     }
 
@@ -940,7 +940,7 @@ impl TryFrom<GenericNetlinkMessageCommand> for TaskStatsCommand {
             x if x == Self::UNSPECIFIED as u8 => Ok(Self::UNSPECIFIED),
             x if x == Self::GET as u8 => Ok(Self::GET),
             x if x == Self::NEW as u8 => Ok(Self::NEW),
-            _ => Err(TaskStatsError::UNKNOWN_COMMAND(command)),
+            _ => Err(TaskStatsError::UnknownCommand(command)),
         }
     }
 }
@@ -1221,7 +1221,7 @@ impl TryFrom<TaskStatsAttributeType> for TaskStatsResultAttributeType {
             x if x == Self::AggrPid.into() => Ok(Self::AggrPid),
             x if x == Self::AggrTGid.into() => Ok(Self::AggrTGid),
             x if x == Self::NULL.into() => Ok(Self::NULL),
-            _ => Err(TaskStatsError::UNKNOWN_RESULT_ATTRIBUTE_TYPE(
+            _ => Err(TaskStatsError::UnknownResultAttrType(
                 taskstats_attr_type,
             )),
         }
@@ -1236,24 +1236,24 @@ pub struct TaskStatsMessage {
 }
 
 impl TaskStatsMessage {
-    pub fn New(familyId: u16, command: TaskStatsCommand) -> Self {
+    pub fn new(family_id: u16, command: TaskStatsCommand) -> Self {
         Self {
             command,
-            family_id: familyId,
+            family_id,
             attributes: Vec::new(),
         }
     }
 
-    pub fn AddCommandAttribute(&mut self, attribute: TaskStatsCommandAttribute) {
+    pub fn add_command_attr(&mut self, attribute: TaskStatsCommandAttribute) {
         self.attributes.push(attribute.into());
     }
 
-    pub fn GetResultAttribute(
+    pub fn get_result_attr(
         &self,
-        attributeType: TaskStatsResultAttributeType,
+        attr_type: TaskStatsResultAttributeType,
     ) -> Option<TaskStatsResultAttribute> {
         for attribute in &self.attributes {
-            if attribute.get_type() == attributeType.into() {
+            if attribute.get_type() == attr_type.into() {
                 return Some(attribute.clone().try_into().ok()?);
             }
         }
@@ -1264,35 +1264,35 @@ impl TaskStatsMessage {
 
 impl Into<GenericNetlinkMessage> for TaskStatsMessage {
     fn into(self) -> GenericNetlinkMessage {
-        let mut genericNetlinkMessage = GenericNetlinkMessage::new(
+        let mut generic_netlink_message = GenericNetlinkMessage::new(
             GenericNetlinkMessageType::new(self.family_id),
             self.command.into(),
         );
 
         for attribute in self.attributes {
-            genericNetlinkMessage.add_attr(attribute.into());
+            generic_netlink_message.add_attr(attribute.into());
         }
 
-        genericNetlinkMessage
+        generic_netlink_message
     }
 }
 
 impl TryFrom<GenericNetlinkMessage> for TaskStatsMessage {
     type Error = TaskStatsError;
 
-    fn try_from(genericNetlinkMessage: GenericNetlinkMessage) -> Result<Self, Self::Error> {
-        let familyId: u16 = genericNetlinkMessage.get_message_type().into();
-        let command = genericNetlinkMessage.get_command().try_into()?;
+    fn try_from(generic_netlink_message: GenericNetlinkMessage) -> Result<Self, Self::Error> {
+        let family_id: u16 = generic_netlink_message.get_message_type().into();
+        let command = generic_netlink_message.get_command().try_into()?;
 
         let mut attributes = Vec::new();
 
-        for attribute in genericNetlinkMessage.attributes {
+        for attribute in generic_netlink_message.attributes {
             attributes.push(attribute.into());
         }
 
         let result = Self {
             command,
-            family_id: familyId,
+            family_id,
             attributes,
         };
 
@@ -1302,111 +1302,112 @@ impl TryFrom<GenericNetlinkMessage> for TaskStatsMessage {
 
 #[derive(Debug)]
 pub struct TaskStatsConnection {
-    genericNetlinkConnection: GenericNetlinkConnection,
-    taskStatsFamilyId: u16,
+    generic_netlink_connection: GenericNetlinkConnection,
+    taskstats_family_id: u16,
 }
 
+#[allow(unused)]
 impl TaskStatsConnection {
     const TASKSTATS_FAMILY_NAME: &'static str = "TASKSTATS";
 
     pub fn new() -> Result<Self, TaskStatsError> {
-        let genericNetlinkConnection = GenericNetlinkConnection::new()?;
+        let generic_netlink_connection = GenericNetlinkConnection::new()?;
 
-        let mut getFamilyIdMessage =
+        let mut get_family_id_message =
             GenericNetlinkControlMessage::new(GenericNetlinkControlMessageCommand::GetFamilyId);
 
-        getFamilyIdMessage.add_ctrl_attr(GenericNetlinkControlMessageAttribute::FamilyName(
+        get_family_id_message.add_ctrl_attr(GenericNetlinkControlMessageAttribute::FamilyName(
             String::from(Self::TASKSTATS_FAMILY_NAME),
         ));
 
-        genericNetlinkConnection.send(getFamilyIdMessage.into())?;
+        generic_netlink_connection.send(get_family_id_message.into())?;
 
-        let respondMessage = genericNetlinkConnection.recv()?;
-        let respondMessage: GenericNetlinkControlMessage = respondMessage.try_into()?;
+        let response_message = generic_netlink_connection.recv()?;
+        let response_message: GenericNetlinkControlMessage = response_message.try_into()?;
 
-        if let GenericNetlinkControlMessageAttribute::FamilyId(familyId) = respondMessage
+        if let GenericNetlinkControlMessageAttribute::FamilyId(family_id) = response_message
             .get_ctrl_attr(GenericNetlinkControlMessageAttributeType::FamilyId)
             .unwrap()
         {
             Ok(Self {
-                genericNetlinkConnection,
-                taskStatsFamilyId: familyId,
+                generic_netlink_connection,
+                taskstats_family_id: family_id,
             })
         } else {
-            Err(TaskStatsError::GET_FAMILY_ID_ERROR)
+            Err(TaskStatsError::GetFamilyIdErr)
         }
     }
 
-    pub fn get_thread_taskstats(&self, realTid: Tid) -> Result<TaskStats, TaskStatsError> {
-        let mut taskStatsMessage =
-            TaskStatsMessage::New(self.taskStatsFamilyId, TaskStatsCommand::GET);
+    pub fn get_thread_taskstats(&self, real_tid: Tid) -> Result<TaskStats, TaskStatsError> {
+        let mut taskstats_message =
+            TaskStatsMessage::new(self.taskstats_family_id, TaskStatsCommand::GET);
 
-        taskStatsMessage.AddCommandAttribute(TaskStatsCommandAttribute::PID(realTid));
+        taskstats_message.add_command_attr(TaskStatsCommandAttribute::PID(real_tid));
 
-        self.genericNetlinkConnection
-            .send(taskStatsMessage.into())?;
-        let respondMessage: TaskStatsMessage = self.genericNetlinkConnection.recv()?.try_into()?;
+        self.generic_netlink_connection
+            .send(taskstats_message.into())?;
+        let response_message: TaskStatsMessage = self.generic_netlink_connection.recv()?.try_into()?;
 
-        let result = respondMessage.GetResultAttribute(TaskStatsResultAttributeType::AggrPid);
+        let result = response_message.get_result_attr(TaskStatsResultAttributeType::AggrPid);
 
         if result.is_none() {
-            return Err(TaskStatsError::NO_AGGR_PID_ATTRIBUTE(respondMessage));
+            return Err(TaskStatsError::NoAggrPidAttr(response_message));
         }
 
         if let TaskStatsResultAttribute::AggrPid(result) = result.unwrap() {
             // check if we get the same tid we ask for
-            if result.tid != realTid {
-                return Err(TaskStatsError::WRONG_TID(result.tid));
+            if result.tid != real_tid {
+                return Err(TaskStatsError::WrongTid(result.tid));
             }
 
             Ok(result.stats.into())
         } else {
-            Err(TaskStatsError::WRONG_RESULT_TYPE(result.unwrap()))
+            Err(TaskStatsError::WrongResultType(result.unwrap()))
         }
     }
 
-    pub fn GetProcessTaskStats(&self, realPid: Pid) -> Result<TaskStats, TaskStatsError> {
-        let mut taskStatsMessage =
-            TaskStatsMessage::New(self.taskStatsFamilyId, TaskStatsCommand::GET);
+    pub fn get_process_taskstats(&self, real_pid: Pid) -> Result<TaskStats, TaskStatsError> {
+        let mut taskstats_message =
+            TaskStatsMessage::new(self.taskstats_family_id, TaskStatsCommand::GET);
 
-        taskStatsMessage.AddCommandAttribute(TaskStatsCommandAttribute::TGID(realPid));
+        taskstats_message.add_command_attr(TaskStatsCommandAttribute::TGID(real_pid));
 
-        self.genericNetlinkConnection
-            .send(taskStatsMessage.into())?;
-        let respondMessage: TaskStatsMessage = self.genericNetlinkConnection.recv()?.try_into()?;
+        self.generic_netlink_connection
+            .send(taskstats_message.into())?;
+        let response_message: TaskStatsMessage = self.generic_netlink_connection.recv()?.try_into()?;
 
-        let result = respondMessage.GetResultAttribute(TaskStatsResultAttributeType::AggrTGid);
+        let result = response_message.get_result_attr(TaskStatsResultAttributeType::AggrTGid);
 
         if result.is_none() {
-            return Err(TaskStatsError::NO_AGGR_TGID_ATTRIBUTE(respondMessage));
+            return Err(TaskStatsError::NoAggrTgidAttr(response_message));
         }
 
         if let TaskStatsResultAttribute::AggrTGid(result) = result.unwrap() {
             // check if we get the same pid we ask for
-            if result.pid != realPid {
-                return Err(TaskStatsError::WRONG_PID(result.pid));
+            if result.pid != real_pid {
+                return Err(TaskStatsError::WrongPid(result.pid));
             }
 
             Ok(result.stats.into())
         } else {
-            Err(TaskStatsError::WRONG_RESULT_TYPE(result.unwrap()))
+            Err(TaskStatsError::WrongResultType(result.unwrap()))
         }
     }
 }
 
 #[derive(Debug)]
 pub enum TaskStatsError {
-    GENERIC_ERROR(GenericError),
-    UNSUPPORTED_TASKSTATS_VERSION(u16),
-    GET_FAMILY_ID_ERROR,
-    UNKNOWN_COMMAND(u8),
-    NO_AGGR_PID_ATTRIBUTE(TaskStatsMessage),
-    NO_AGGR_TGID_ATTRIBUTE(TaskStatsMessage),
-    UNKNOWN_RESULT_ATTRIBUTE_TYPE(TaskStatsAttributeType),
-    TASK_STRUCT_ERROR(Vec<u8>),
-    WRONG_TID(Tid),
-    WRONG_PID(Pid),
-    WRONG_RESULT_TYPE(TaskStatsResultAttribute),
+    GenericError(GenericError),
+    UnsupportedTaskstatsVersion(u16),
+    GetFamilyIdErr,
+    UnknownCommand(u8),
+    NoAggrPidAttr(TaskStatsMessage),
+    NoAggrTgidAttr(TaskStatsMessage),
+    UnknownResultAttrType(TaskStatsAttributeType),
+    TaskStructErr(Vec<u8>),
+    WrongTid(Tid),
+    WrongPid(Pid),
+    WrongResultType(TaskStatsResultAttribute),
 }
 
 impl Error for TaskStatsError {}
@@ -1414,30 +1415,30 @@ impl Error for TaskStatsError {}
 impl fmt::Display for TaskStatsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let result = match self {
-            Self::GENERIC_ERROR(error) => String::from(format!("Generic netlink error: {}", error)),
-            Self::UNSUPPORTED_TASKSTATS_VERSION(version) => {
+            Self::GenericError(error) => String::from(format!("Generic netlink error: {}", error)),
+            Self::UnsupportedTaskstatsVersion(version) => {
                 String::from(format!("Unsupported taskstats version: {}", version))
             }
-            Self::GET_FAMILY_ID_ERROR => String::from(format!("Can't get family id")),
-            Self::UNKNOWN_COMMAND(command) => String::from(format!("Unknown command: {}", command)),
-            Self::NO_AGGR_PID_ATTRIBUTE(taskStatsMessage) => {
-                String::from(format!("No AGGR_PID attribute: {:?}", taskStatsMessage))
+            Self::GetFamilyIdErr => String::from(format!("Can't get family id")),
+            Self::UnknownCommand(command) => String::from(format!("Unknown command: {}", command)),
+            Self::NoAggrPidAttr(taskstats_msg) => {
+                String::from(format!("No AGGR_PID attribute: {:?}", taskstats_msg))
             }
-            Self::NO_AGGR_TGID_ATTRIBUTE(taskStatsMessage) => {
-                String::from(format!("No AGGR_TGID attribute: {:?}", taskStatsMessage))
+            Self::NoAggrTgidAttr(taskstats_msg) => {
+                String::from(format!("No AGGR_TGID attribute: {:?}", taskstats_msg))
             }
-            Self::UNKNOWN_RESULT_ATTRIBUTE_TYPE(taskStatsAttributeType) => String::from(format!(
+            Self::UnknownResultAttrType(taskstats_attr_type) => String::from(format!(
                 "Unknown result attribute type: {:?}",
-                taskStatsAttributeType
+                taskstats_attr_type
             )),
-            Self::TASK_STRUCT_ERROR(buf) => {
+            Self::TaskStructErr(buf) => {
                 String::from(format!("Raw taskstats struct error: {:?}", buf))
             }
-            Self::WRONG_TID(tid) => String::from(format!("Wrong tid from result: {:?}", tid)),
-            Self::WRONG_PID(pid) => String::from(format!("Wrong pid from result: {:?}", pid)),
-            Self::WRONG_RESULT_TYPE(taskStatsResultAttribute) => String::from(format!(
+            Self::WrongTid(tid) => String::from(format!("Wrong tid from result: {:?}", tid)),
+            Self::WrongPid(pid) => String::from(format!("Wrong pid from result: {:?}", pid)),
+            Self::WrongResultType(taskstats_result_attr) => String::from(format!(
                 "Wrong taskstats result attribute type: {:?}",
-                taskStatsResultAttribute
+                taskstats_result_attr
             )),
         };
 
@@ -1447,6 +1448,6 @@ impl fmt::Display for TaskStatsError {
 
 impl From<GenericError> for TaskStatsError {
     fn from(error: GenericError) -> Self {
-        Self::GENERIC_ERROR(error)
+        Self::GenericError(error)
     }
 }
