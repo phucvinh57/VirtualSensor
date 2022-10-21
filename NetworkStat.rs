@@ -136,9 +136,9 @@ impl UniConnectionStat {
         Self {
             uniConnection,
 
-            packetCount: Count::New(0),
-            totalDataCount: DataCount::FromByte(0),
-            realDataCount: DataCount::FromByte(0),
+            packetCount: Count::new(0),
+            totalDataCount: DataCount::from_byte(0),
+            realDataCount: DataCount::from_byte(0),
 
             isUsed: false,
         }
@@ -352,9 +352,9 @@ fn ParseIpv4Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     Ok(UniConnectionStat {
         uniConnection: UniConnection::New(srcAddr, srcPort, desAddr, desPort, connectionType),
 
-        packetCount: Count::New(1),
-        totalDataCount: DataCount::FromByte(0),
-        realDataCount: DataCount::FromByte(payloadLength),
+        packetCount: Count::new(1),
+        totalDataCount: DataCount::from_byte(0),
+        realDataCount: DataCount::from_byte(payloadLength),
 
         isUsed: false,
     })
@@ -450,9 +450,9 @@ fn ParseIpv6Packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError> {
     Ok(UniConnectionStat {
         uniConnection: UniConnection::New(srcAddr, srcPort, desAddr, desPort, connectionType),
 
-        packetCount: Count::New(1),
-        totalDataCount: DataCount::FromByte(0),
-        realDataCount: DataCount::FromByte(payloadLength - (currentIndex - IPV6_FIXED_HEADER_SIZE)),
+        packetCount: Count::new(1),
+        totalDataCount: DataCount::from_byte(0),
+        realDataCount: DataCount::from_byte(payloadLength - (currentIndex - IPV6_FIXED_HEADER_SIZE)),
 
         isUsed: false,
     })
@@ -492,7 +492,7 @@ fn GetUniConnectionStat(packet: Packet) -> Result<UniConnectionStat, NetworkStat
     };
 
     result.and_then(|mut x| {
-        x.totalDataCount = DataCount::FromByte(packet.header.len.try_into().unwrap());
+        x.totalDataCount = DataCount::from_byte(packet.header.len.try_into().unwrap());
         Ok(x)
     })
 }
@@ -530,10 +530,10 @@ fn ControlThread(
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
 
-                    let d = common::ParseHexString(b[0], Endian::LITTLE)?;
-                    let e = common::ParseHexString(b[1], Endian::BIG)?;
-                    let f = common::ParseHexString(c[0], Endian::LITTLE)?;
-                    let g = common::ParseHexString(c[1], Endian::BIG)?;
+                    let d = common::parse_hex_str(b[0], Endian::LITTLE)?;
+                    let e = common::parse_hex_str(b[1], Endian::BIG)?;
+                    let f = common::parse_hex_str(c[0], Endian::LITTLE)?;
+                    let g = common::parse_hex_str(c[1], Endian::BIG)?;
 
                     if d.len() != 4 || e.len() != 2 || f.len() != 4 || g.len() != 2 {
                         return Err(NetworkStatError::CONVERT_ERROR);
@@ -559,11 +559,11 @@ fn ControlThread(
 
                     networkRawStat
                         .connectionLookupTable
-                        .insert(Inode::New(a[9].parse()?), connection);
+                        .insert(Inode::new(a[9].parse()?), connection);
 
                     'outer1: for device in &devices {
                         for address in &device.addresses {
-                            if common::AddressInNetwork(
+                            if common::addr_in_network(
                                 &localAddr,
                                 &address.addr,
                                 &address.netmask.unwrap(),
@@ -584,10 +584,10 @@ fn ControlThread(
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
 
-                    let d = common::ParseHexString(b[0], Endian::LITTLE)?;
-                    let e = common::ParseHexString(b[1], Endian::BIG)?;
-                    let f = common::ParseHexString(c[0], Endian::LITTLE)?;
-                    let g = common::ParseHexString(c[1], Endian::BIG)?;
+                    let d = common::parse_hex_str(b[0], Endian::LITTLE)?;
+                    let e = common::parse_hex_str(b[1], Endian::BIG)?;
+                    let f = common::parse_hex_str(c[0], Endian::LITTLE)?;
+                    let g = common::parse_hex_str(c[1], Endian::BIG)?;
 
                     if d.len() != 16 || e.len() != 2 || f.len() != 16 || g.len() != 2 {
                         return Err(NetworkStatError::CONVERT_ERROR);
@@ -629,11 +629,11 @@ fn ControlThread(
 
                     networkRawStat
                         .connectionLookupTable
-                        .insert(Inode::New(a[9].parse()?), connection);
+                        .insert(Inode::new(a[9].parse()?), connection);
 
                     'outer2: for device in &devices {
                         for address in &device.addresses {
-                            if common::AddressInNetwork(
+                            if common::addr_in_network(
                                 &localAddr,
                                 &address.addr,
                                 &address.netmask.unwrap(),
@@ -654,10 +654,10 @@ fn ControlThread(
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
 
-                    let d = common::ParseHexString(b[0], Endian::LITTLE)?;
-                    let e = common::ParseHexString(b[1], Endian::BIG)?;
-                    let f = common::ParseHexString(c[0], Endian::LITTLE)?;
-                    let g = common::ParseHexString(c[1], Endian::BIG)?;
+                    let d = common::parse_hex_str(b[0], Endian::LITTLE)?;
+                    let e = common::parse_hex_str(b[1], Endian::BIG)?;
+                    let f = common::parse_hex_str(c[0], Endian::LITTLE)?;
+                    let g = common::parse_hex_str(c[1], Endian::BIG)?;
 
                     if d.len() != 4 || e.len() != 2 || f.len() != 4 || g.len() != 2 {
                         return Err(NetworkStatError::CONVERT_ERROR);
@@ -683,11 +683,11 @@ fn ControlThread(
 
                     networkRawStat
                         .connectionLookupTable
-                        .insert(Inode::New(a[9].parse()?), connection);
+                        .insert(Inode::new(a[9].parse()?), connection);
 
                     'outer3: for device in &devices {
                         for address in &device.addresses {
-                            if common::AddressInNetwork(
+                            if common::addr_in_network(
                                 &localAddr,
                                 &address.addr,
                                 &address.netmask.unwrap(),
@@ -708,10 +708,10 @@ fn ControlThread(
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
 
-                    let d = common::ParseHexString(b[0], Endian::LITTLE)?;
-                    let e = common::ParseHexString(b[1], Endian::BIG)?;
-                    let f = common::ParseHexString(c[0], Endian::LITTLE)?;
-                    let g = common::ParseHexString(c[1], Endian::BIG)?;
+                    let d = common::parse_hex_str(b[0], Endian::LITTLE)?;
+                    let e = common::parse_hex_str(b[1], Endian::BIG)?;
+                    let f = common::parse_hex_str(c[0], Endian::LITTLE)?;
+                    let g = common::parse_hex_str(c[1], Endian::BIG)?;
 
                     if d.len() != 16 || e.len() != 2 || f.len() != 16 || g.len() != 2 {
                         return Err(NetworkStatError::CONVERT_ERROR);
@@ -753,11 +753,11 @@ fn ControlThread(
 
                     networkRawStat
                         .connectionLookupTable
-                        .insert(Inode::New(a[9].parse()?), connection);
+                        .insert(Inode::new(a[9].parse()?), connection);
 
                     'outer4: for device in &devices {
                         for address in &device.addresses {
-                            if common::AddressInNetwork(
+                            if common::addr_in_network(
                                 &localAddr,
                                 &address.addr,
                                 &address.netmask.unwrap(),

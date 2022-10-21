@@ -10,10 +10,10 @@ use serde::Serialize;
 pub struct Uid(u128);
 
 impl Uid {
-    pub fn New(uid: usize) -> Self {
+    pub fn new(uid: usize) -> Self {
         Self(uid.try_into().unwrap())
     }
-    pub fn ToUsize(&self) -> usize {
+    pub fn to_usize(&self) -> usize {
         self.0.try_into().unwrap()
     }
 }
@@ -36,10 +36,10 @@ impl Into<u32> for Uid {
 pub struct Gid(u128);
 
 impl Gid {
-    pub fn New(gid: usize) -> Self {
+    pub fn new(gid: usize) -> Self {
         Self(gid.try_into().unwrap())
     }
-    pub fn ToUsize(&self) -> usize {
+    pub fn to_usize(&self) -> usize {
         self.0.try_into().unwrap()
     }
 }
@@ -62,7 +62,7 @@ impl Into<u32> for Gid {
 pub struct Inode(u128);
 
 impl Inode {
-    pub fn New(inode: usize) -> Self {
+    pub fn new(inode: usize) -> Self {
         Self(inode.try_into().unwrap())
     }
 }
@@ -79,11 +79,11 @@ impl TryFrom<&str> for Inode {
 pub struct Timestamp(u128);
 
 impl Timestamp {
-    pub fn New() -> Self {
+    pub fn new() -> Self {
         Self(0)
     }
 
-    pub fn GetCurrentTimestamp() -> Self {
+    pub fn get_curr_timestamp() -> Self {
         Self(
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -102,28 +102,28 @@ impl TimeCount {
     const NANOSECONDS_PER_MILLISECOND: usize = 1_000_000;
     const NANOSECONDS_PER_MICROSECOND: usize = 1_000;
 
-    pub fn New() -> Self {
+    pub fn new() -> Self {
         Self(0)
     }
-    pub fn FromSeconds(seconds: usize) -> Self {
+    pub fn from_secs(seconds: usize) -> Self {
         Self((seconds * Self::NANOSECONDS_PER_SECOND).try_into().unwrap())
     }
-    pub fn FromMilliSeconds(milliSeconds: usize) -> Self {
+    pub fn from_milisecs(millisecs: usize) -> Self {
         Self(
-            (milliSeconds * Self::NANOSECONDS_PER_MILLISECOND)
+            (millisecs * Self::NANOSECONDS_PER_MILLISECOND)
                 .try_into()
                 .unwrap(),
         )
     }
-    pub fn FromMicroSeconds(microSeconds: usize) -> Self {
+    pub fn from_microsecs(microsecs: usize) -> Self {
         Self(
-            (microSeconds * Self::NANOSECONDS_PER_MICROSECOND)
+            (microsecs * Self::NANOSECONDS_PER_MICROSECOND)
                 .try_into()
                 .unwrap(),
         )
     }
-    pub fn FromNanoSeconds(nanoSeconds: usize) -> Self {
-        Self(nanoSeconds.try_into().unwrap())
+    pub fn from_nanosecs(nanosecs: usize) -> Self {
+        Self(nanosecs.try_into().unwrap())
     }
 }
 
@@ -146,25 +146,25 @@ impl AddAssign<Self> for TimeCount {
 pub struct DataCount(u128);
 
 impl DataCount {
-    pub fn FromByte(byte: usize) -> Self {
+    pub fn from_byte(byte: usize) -> Self {
         Self(byte as u128)
     }
-    pub fn FromKB(kb: usize) -> Self {
+    pub fn from_kb(kb: usize) -> Self {
         Self(kb as u128 * 1024)
     }
-    pub fn FromMB(mb: usize) -> Self {
+    pub fn from_mb(mb: usize) -> Self {
         Self(mb as u128 * 1024 * 1024)
     }
-    pub fn FromGB(gb: usize) -> Self {
+    pub fn from_gb(gb: usize) -> Self {
         Self(gb as u128 * 1024 * 1024 * 1024)
     }
-    pub fn FromTB(tb: usize) -> Self {
+    pub fn from_tb(tb: usize) -> Self {
         Self(tb as u128 * 1024 * 1024 * 1024 * 1024)
     }
-    pub fn FromPB(pb: usize) -> Self {
+    pub fn from_pb(pb: usize) -> Self {
         Self(pb as u128 * 1024 * 1024 * 1024 * 1024 * 1024)
     }
-    pub fn FromEB(eb: usize) -> Self {
+    pub fn from_eb(eb: usize) -> Self {
         Self(eb as u128 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024)
     }
 }
@@ -187,7 +187,7 @@ impl AddAssign<Self> for DataCount {
 pub struct Count(u128);
 
 impl Count {
-    pub fn New(count: usize) -> Self {
+    pub fn new(count: usize) -> Self {
         Self(count as u128)
     }
 }
@@ -211,18 +211,18 @@ pub enum Endian {
     BIG,
 }
 
-pub fn AlignBuffer(buf: &mut Vec<u8>, align: usize) {
-    let paddingLen = ((buf.len() + align - 1) / align) * align - buf.len();
-    buf.append(&mut vec![0u8; paddingLen]);
+pub fn align_buffer(buf: &mut Vec<u8>, align: usize) {
+    let padding_len = ((buf.len() + align - 1) / align) * align - buf.len();
+    buf.append(&mut vec![0u8; padding_len]);
 }
 
-pub fn NextAlignNumber(currentNumber: usize, align: usize) -> usize {
-    ((currentNumber + align - 1) / align) * align
+pub fn next_align_num(curr_num: usize, align: usize) -> usize {
+    ((curr_num + align - 1) / align) * align
 }
 
-pub fn ParseHexString(input: &str, endian: Endian) -> Result<Vec<u8>, CommonError> {
+pub fn parse_hex_str(input: &str, endian: Endian) -> Result<Vec<u8>, CommonError> {
     if input.len() % 2 != 0 {
-        return Err(CommonError::ODD_LENGTH_HEX_STRING(input.len()));
+        return Err(CommonError::OddLenHexStr(input.len()));
     }
 
     match endian {
@@ -231,14 +231,14 @@ pub fn ParseHexString(input: &str, endian: Endian) -> Result<Vec<u8>, CommonErro
             .rev()
             .map(|index| {
                 u8::from_str_radix(&input[index..index + 2], 16)
-                    .map_err(|err| CommonError::PARSE_INT_ERROR(err))
+                    .map_err(|err| CommonError::ParseIntErr(err))
             })
             .collect(),
         Endian::BIG => (0..input.len())
             .step_by(2)
             .map(|index| {
                 u8::from_str_radix(&input[index..index + 2], 16)
-                    .map_err(|err| CommonError::PARSE_INT_ERROR(err))
+                    .map_err(|err| CommonError::ParseIntErr(err))
             })
             .collect(),
     }
@@ -246,9 +246,9 @@ pub fn ParseHexString(input: &str, endian: Endian) -> Result<Vec<u8>, CommonErro
 
 #[derive(Debug)]
 pub enum CommonError {
-    ODD_LENGTH_HEX_STRING(usize),
-    PARSE_INT_ERROR(num::ParseIntError),
-    CONVERT_ERROR(String),
+    OddLenHexStr(usize),
+    ParseIntErr(num::ParseIntError),
+    ConvertErr(String),
 }
 
 impl std::error::Error for CommonError {}
@@ -256,11 +256,11 @@ impl std::error::Error for CommonError {}
 impl fmt::Display for CommonError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let result = match self {
-            Self::ODD_LENGTH_HEX_STRING(len) => {
+            Self::OddLenHexStr(len) => {
                 String::from(format!("Odd length hex string: {}", len))
             }
-            Self::PARSE_INT_ERROR(error) => String::from(format!("Parse integer error: {}", error)),
-            Self::CONVERT_ERROR(string) => String::from(format!("Can't convert {}", string)),
+            Self::ParseIntErr(error) => String::from(format!("Parse integer error: {}", error)),
+            Self::ConvertErr(string) => String::from(format!("Can't convert {}", string)),
         };
 
         write!(f, "{}", result)
@@ -269,43 +269,43 @@ impl fmt::Display for CommonError {
 
 impl From<num::ParseIntError> for CommonError {
     fn from(error: num::ParseIntError) -> Self {
-        Self::PARSE_INT_ERROR(error)
+        Self::ParseIntErr(error)
     }
 }
 
-pub fn AddressInNetwork(
+pub fn addr_in_network(
     addr: &IpAddr,
-    networkAddr: &IpAddr,
-    networkMask: &IpAddr,
+    net_addr: &IpAddr,
+    net_mask: &IpAddr,
 ) -> Result<bool, ()> {
     // convert
 
     // check if they are same kind of address
-    match (addr, networkAddr, networkMask) {
-        (IpAddr::V4(addr), IpAddr::V4(networkAddr), IpAddr::V4(networkMask)) => {
+    match (addr, net_addr, net_mask) {
+        (IpAddr::V4(addr), IpAddr::V4(net_addr), IpAddr::V4(net_mask)) => {
             // covert them to byte array
             let addr = addr.octets();
-            let networkAddr = networkAddr.octets();
-            let networkMask = networkMask.octets();
+            let net_addr = net_addr.octets();
+            let net_mask = net_mask.octets();
 
             // compare byte-by-byte
             for i in 0..addr.len() {
-                if addr[i] & networkMask[i] != networkAddr[i] & networkMask[i] {
+                if addr[i] & net_mask[i] != net_addr[i] & net_mask[i] {
                     return Ok(false);
                 }
             }
 
             Ok(true)
         }
-        (IpAddr::V6(addr), IpAddr::V6(networkAddr), IpAddr::V6(networkMask)) => {
+        (IpAddr::V6(addr), IpAddr::V6(net_addr), IpAddr::V6(net_mask)) => {
             // covert them to byte array
             let addr = addr.octets();
-            let networkAddr = networkAddr.octets();
-            let networkMask = networkMask.octets();
+            let net_addr = net_addr.octets();
+            let net_mask = net_mask.octets();
 
             // compare byte-by-byte
             for i in 0..addr.len() {
-                if addr[i] & networkMask[i] != networkAddr[i] & networkMask[i] {
+                if addr[i] & net_mask[i] != net_addr[i] & net_mask[i] {
                     return Ok(false);
                 }
             }

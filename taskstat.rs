@@ -126,79 +126,79 @@ impl TaskStatsRawV8 {
         TaskStats {
             commandString: self.CommandString(),
             pid: Pid::New(self.pid as usize),
-            uid: Uid::New(self.uid as usize),
-            gid: Gid::New(self.gid as usize),
+            uid: Uid::new(self.uid as usize),
+            gid: Gid::new(self.gid as usize),
             parentPid: Pid::New(self.parentPid as usize),
             nice: self.nice as isize,
             flags: self.flags as usize,
             exitcode: self.exitcode as usize,
-            timestamp: Timestamp::GetCurrentTimestamp(),
+            timestamp: Timestamp::get_curr_timestamp(),
 
             beginTime: UNIX_EPOCH + Duration::from_secs(self.beginTime as u64),
-            elapsedTime: TimeCount::FromMicroSeconds(self.elapsedTime.try_into().unwrap()),
+            elapsedTime: TimeCount::from_microsecs(self.elapsedTime.try_into().unwrap()),
             schedulingDiscipline: self.schedulingDiscipline,
 
-            userCpuTime: TimeCount::FromMicroSeconds(self.userCpuTime.try_into().unwrap()),
-            systemCpuTime: TimeCount::FromMicroSeconds(self.systemCpuTime.try_into().unwrap()),
+            userCpuTime: TimeCount::from_microsecs(self.userCpuTime.try_into().unwrap()),
+            systemCpuTime: TimeCount::from_microsecs(self.systemCpuTime.try_into().unwrap()),
 
-            accumulatedRss: DataCount::FromMB(self.accumulatedRss.try_into().unwrap()),
-            accumulatedVss: DataCount::FromMB(self.accumulatedVss.try_into().unwrap()),
+            accumulatedRss: DataCount::from_mb(self.accumulatedRss.try_into().unwrap()),
+            accumulatedVss: DataCount::from_mb(self.accumulatedVss.try_into().unwrap()),
 
-            highWaterRss: DataCount::FromKB(self.highWaterRss.try_into().unwrap()),
-            highWaterVss: DataCount::FromKB(self.highWaterVss.try_into().unwrap()),
+            highWaterRss: DataCount::from_kb(self.highWaterRss.try_into().unwrap()),
+            highWaterVss: DataCount::from_kb(self.highWaterVss.try_into().unwrap()),
 
-            ioRead: DataCount::FromByte(self.ioReadBytes.try_into().unwrap()),
-            ioWrite: DataCount::FromByte(self.ioWriteBytes.try_into().unwrap()),
+            ioRead: DataCount::from_byte(self.ioReadBytes.try_into().unwrap()),
+            ioWrite: DataCount::from_byte(self.ioWriteBytes.try_into().unwrap()),
 
-            readSyscallCount: Count::New(self.readSyscallCount.try_into().unwrap()),
-            writeSyscallCount: Count::New(self.writeSyscallCount.try_into().unwrap()),
+            readSyscallCount: Count::new(self.readSyscallCount.try_into().unwrap()),
+            writeSyscallCount: Count::new(self.writeSyscallCount.try_into().unwrap()),
 
-            blockIORead: DataCount::FromByte(self.blockIOReadBytes.try_into().unwrap()),
-            blockIOWrite: DataCount::FromByte(self.blockIOWriteBytes.try_into().unwrap()),
-            cancelledBlockIOWrite: DataCount::FromByte(
+            blockIORead: DataCount::from_byte(self.blockIOReadBytes.try_into().unwrap()),
+            blockIOWrite: DataCount::from_byte(self.blockIOWriteBytes.try_into().unwrap()),
+            cancelledBlockIOWrite: DataCount::from_byte(
                 self.cancelledBlockIOWriteBytes.try_into().unwrap(),
             ),
 
-            cpuDelayCount: Count::New(self.cpuDelayCount.try_into().unwrap()),
-            cpuDelayTotal: TimeCount::FromNanoSeconds(self.cpuDelayTotal.try_into().unwrap()),
+            cpuDelayCount: Count::new(self.cpuDelayCount.try_into().unwrap()),
+            cpuDelayTotal: TimeCount::from_nanosecs(self.cpuDelayTotal.try_into().unwrap()),
 
-            minorFaultCount: Count::New(self.minorFaultCount.try_into().unwrap()),
-            majorFaultCount: Count::New(self.majorFaultCount.try_into().unwrap()),
+            minorFaultCount: Count::new(self.minorFaultCount.try_into().unwrap()),
+            majorFaultCount: Count::new(self.majorFaultCount.try_into().unwrap()),
 
-            freePagesDelayCount: Count::New(self.freePagesDelayCount.try_into().unwrap()),
-            freePagesDelayTotal: TimeCount::FromNanoSeconds(
+            freePagesDelayCount: Count::new(self.freePagesDelayCount.try_into().unwrap()),
+            freePagesDelayTotal: TimeCount::from_nanosecs(
                 self.freePagesDelayTotal.try_into().unwrap(),
             ),
 
-            thrashingDelayCount: Count::New(0),
-            thrashingDelayTotal: TimeCount::FromNanoSeconds(0),
+            thrashingDelayCount: Count::new(0),
+            thrashingDelayTotal: TimeCount::from_nanosecs(0),
 
-            blockIODelayCount: Count::New(self.blockIODelayCount.try_into().unwrap()),
-            blockIODelayTotal: TimeCount::FromNanoSeconds(
+            blockIODelayCount: Count::new(self.blockIODelayCount.try_into().unwrap()),
+            blockIODelayTotal: TimeCount::from_nanosecs(
                 self.blockIODelayTotal.try_into().unwrap(),
             ),
 
-            swapinDelayCount: Count::New(self.swapinDelayCount.try_into().unwrap()),
-            swapinDelayTotal: TimeCount::FromNanoSeconds(self.swapinDelayTotal.try_into().unwrap()),
+            swapinDelayCount: Count::new(self.swapinDelayCount.try_into().unwrap()),
+            swapinDelayTotal: TimeCount::from_nanosecs(self.swapinDelayTotal.try_into().unwrap()),
 
-            memoryCompactDelayCount: Count::New(0),
-            memoryCompactDelayTotal: TimeCount::FromNanoSeconds(0),
+            memoryCompactDelayCount: Count::new(0),
+            memoryCompactDelayTotal: TimeCount::from_nanosecs(0),
 
-            voluntaryContextSwitches: Count::New(self.voluntaryContextSwitches.try_into().unwrap()),
-            nonvoluntaryContextSwitches: Count::New(
+            voluntaryContextSwitches: Count::new(self.voluntaryContextSwitches.try_into().unwrap()),
+            nonvoluntaryContextSwitches: Count::new(
                 self.nonvoluntaryContextSwitches.try_into().unwrap(),
             ),
 
-            cpuRuntimeRealTotal: TimeCount::FromNanoSeconds(
+            cpuRuntimeRealTotal: TimeCount::from_nanosecs(
                 self.cpuRuntimeRealTotal.try_into().unwrap(),
             ),
-            cpuRuntimeVirtualTotal: TimeCount::FromNanoSeconds(
+            cpuRuntimeVirtualTotal: TimeCount::from_nanosecs(
                 self.cpuRuntimeVirtualTotal.try_into().unwrap(),
             ),
 
-            userTimeScaled: TimeCount::FromNanoSeconds(self.userTimeScaled.try_into().unwrap()),
-            systemTimeScaled: TimeCount::FromNanoSeconds(self.systemTimeScaled.try_into().unwrap()),
-            runRealTotalScaled: TimeCount::FromNanoSeconds(
+            userTimeScaled: TimeCount::from_nanosecs(self.userTimeScaled.try_into().unwrap()),
+            systemTimeScaled: TimeCount::from_nanosecs(self.systemTimeScaled.try_into().unwrap()),
+            runRealTotalScaled: TimeCount::from_nanosecs(
                 self.runRealTotalScaled.try_into().unwrap(),
             ),
         }
@@ -319,81 +319,81 @@ impl TaskStatsRawV9 {
         TaskStats {
             commandString: self.CommandString(),
             pid: Pid::New(self.pid as usize),
-            uid: Uid::New(self.uid as usize),
-            gid: Gid::New(self.gid as usize),
+            uid: Uid::new(self.uid as usize),
+            gid: Gid::new(self.gid as usize),
             parentPid: Pid::New(self.parentPid as usize),
             nice: self.nice as isize,
             flags: self.flags as usize,
             exitcode: self.exitcode as usize,
-            timestamp: Timestamp::GetCurrentTimestamp(),
+            timestamp: Timestamp::get_curr_timestamp(),
 
             beginTime: UNIX_EPOCH + Duration::from_secs(self.beginTime as u64),
-            elapsedTime: TimeCount::FromMicroSeconds(self.elapsedTime.try_into().unwrap()),
+            elapsedTime: TimeCount::from_microsecs(self.elapsedTime.try_into().unwrap()),
             schedulingDiscipline: self.schedulingDiscipline,
 
-            userCpuTime: TimeCount::FromMicroSeconds(self.userCpuTime.try_into().unwrap()),
-            systemCpuTime: TimeCount::FromMicroSeconds(self.systemCpuTime.try_into().unwrap()),
+            userCpuTime: TimeCount::from_microsecs(self.userCpuTime.try_into().unwrap()),
+            systemCpuTime: TimeCount::from_microsecs(self.systemCpuTime.try_into().unwrap()),
 
-            accumulatedRss: DataCount::FromMB(self.accumulatedRss.try_into().unwrap()),
-            accumulatedVss: DataCount::FromMB(self.accumulatedVss.try_into().unwrap()),
+            accumulatedRss: DataCount::from_mb(self.accumulatedRss.try_into().unwrap()),
+            accumulatedVss: DataCount::from_mb(self.accumulatedVss.try_into().unwrap()),
 
-            highWaterRss: DataCount::FromKB(self.highWaterRss.try_into().unwrap()),
-            highWaterVss: DataCount::FromKB(self.highWaterVss.try_into().unwrap()),
+            highWaterRss: DataCount::from_kb(self.highWaterRss.try_into().unwrap()),
+            highWaterVss: DataCount::from_kb(self.highWaterVss.try_into().unwrap()),
 
-            ioRead: DataCount::FromByte(self.ioReadBytes.try_into().unwrap()),
-            ioWrite: DataCount::FromByte(self.ioWriteBytes.try_into().unwrap()),
+            ioRead: DataCount::from_byte(self.ioReadBytes.try_into().unwrap()),
+            ioWrite: DataCount::from_byte(self.ioWriteBytes.try_into().unwrap()),
 
-            readSyscallCount: Count::New(self.readSyscallCount.try_into().unwrap()),
-            writeSyscallCount: Count::New(self.writeSyscallCount.try_into().unwrap()),
+            readSyscallCount: Count::new(self.readSyscallCount.try_into().unwrap()),
+            writeSyscallCount: Count::new(self.writeSyscallCount.try_into().unwrap()),
 
-            blockIORead: DataCount::FromByte(self.blockIOReadBytes.try_into().unwrap()),
-            blockIOWrite: DataCount::FromByte(self.blockIOWriteBytes.try_into().unwrap()),
-            cancelledBlockIOWrite: DataCount::FromByte(
+            blockIORead: DataCount::from_byte(self.blockIOReadBytes.try_into().unwrap()),
+            blockIOWrite: DataCount::from_byte(self.blockIOWriteBytes.try_into().unwrap()),
+            cancelledBlockIOWrite: DataCount::from_byte(
                 self.cancelledBlockIOWriteBytes.try_into().unwrap(),
             ),
 
-            cpuDelayCount: Count::New(self.cpuDelayCount.try_into().unwrap()),
-            cpuDelayTotal: TimeCount::FromNanoSeconds(self.cpuDelayTotal.try_into().unwrap()),
+            cpuDelayCount: Count::new(self.cpuDelayCount.try_into().unwrap()),
+            cpuDelayTotal: TimeCount::from_nanosecs(self.cpuDelayTotal.try_into().unwrap()),
 
-            minorFaultCount: Count::New(self.minorFaultCount.try_into().unwrap()),
-            majorFaultCount: Count::New(self.majorFaultCount.try_into().unwrap()),
+            minorFaultCount: Count::new(self.minorFaultCount.try_into().unwrap()),
+            majorFaultCount: Count::new(self.majorFaultCount.try_into().unwrap()),
 
-            freePagesDelayCount: Count::New(self.freePagesDelayCount.try_into().unwrap()),
-            freePagesDelayTotal: TimeCount::FromNanoSeconds(
+            freePagesDelayCount: Count::new(self.freePagesDelayCount.try_into().unwrap()),
+            freePagesDelayTotal: TimeCount::from_nanosecs(
                 self.freePagesDelayTotal.try_into().unwrap(),
             ),
 
-            thrashingDelayCount: Count::New(self.thrashingDelayCount.try_into().unwrap()),
-            thrashingDelayTotal: TimeCount::FromNanoSeconds(
+            thrashingDelayCount: Count::new(self.thrashingDelayCount.try_into().unwrap()),
+            thrashingDelayTotal: TimeCount::from_nanosecs(
                 self.thrashingDelayTotal.try_into().unwrap(),
             ),
 
-            blockIODelayCount: Count::New(self.blockIODelayCount.try_into().unwrap()),
-            blockIODelayTotal: TimeCount::FromNanoSeconds(
+            blockIODelayCount: Count::new(self.blockIODelayCount.try_into().unwrap()),
+            blockIODelayTotal: TimeCount::from_nanosecs(
                 self.blockIODelayTotal.try_into().unwrap(),
             ),
 
-            swapinDelayCount: Count::New(self.swapinDelayCount.try_into().unwrap()),
-            swapinDelayTotal: TimeCount::FromNanoSeconds(self.swapinDelayTotal.try_into().unwrap()),
+            swapinDelayCount: Count::new(self.swapinDelayCount.try_into().unwrap()),
+            swapinDelayTotal: TimeCount::from_nanosecs(self.swapinDelayTotal.try_into().unwrap()),
 
-            memoryCompactDelayCount: Count::New(0),
-            memoryCompactDelayTotal: TimeCount::FromNanoSeconds(0),
+            memoryCompactDelayCount: Count::new(0),
+            memoryCompactDelayTotal: TimeCount::from_nanosecs(0),
 
-            voluntaryContextSwitches: Count::New(self.voluntaryContextSwitches.try_into().unwrap()),
-            nonvoluntaryContextSwitches: Count::New(
+            voluntaryContextSwitches: Count::new(self.voluntaryContextSwitches.try_into().unwrap()),
+            nonvoluntaryContextSwitches: Count::new(
                 self.nonvoluntaryContextSwitches.try_into().unwrap(),
             ),
 
-            cpuRuntimeRealTotal: TimeCount::FromNanoSeconds(
+            cpuRuntimeRealTotal: TimeCount::from_nanosecs(
                 self.cpuRuntimeRealTotal.try_into().unwrap(),
             ),
-            cpuRuntimeVirtualTotal: TimeCount::FromNanoSeconds(
+            cpuRuntimeVirtualTotal: TimeCount::from_nanosecs(
                 self.cpuRuntimeVirtualTotal.try_into().unwrap(),
             ),
 
-            userTimeScaled: TimeCount::FromNanoSeconds(self.userTimeScaled.try_into().unwrap()),
-            systemTimeScaled: TimeCount::FromNanoSeconds(self.systemTimeScaled.try_into().unwrap()),
-            runRealTotalScaled: TimeCount::FromNanoSeconds(
+            userTimeScaled: TimeCount::from_nanosecs(self.userTimeScaled.try_into().unwrap()),
+            systemTimeScaled: TimeCount::from_nanosecs(self.systemTimeScaled.try_into().unwrap()),
+            runRealTotalScaled: TimeCount::from_nanosecs(
                 self.runRealTotalScaled.try_into().unwrap(),
             ),
         }
@@ -516,81 +516,81 @@ impl TaskStatsRawV10 {
         TaskStats {
             commandString: self.CommandString(),
             pid: Pid::New(self.pid as usize),
-            uid: Uid::New(self.uid as usize),
-            gid: Gid::New(self.gid as usize),
+            uid: Uid::new(self.uid as usize),
+            gid: Gid::new(self.gid as usize),
             parentPid: Pid::New(self.parentPid as usize),
             nice: self.nice as isize,
             flags: self.flags as usize,
             exitcode: self.exitcode as usize,
-            timestamp: Timestamp::GetCurrentTimestamp(),
+            timestamp: Timestamp::get_curr_timestamp(),
 
             beginTime: UNIX_EPOCH + Duration::from_secs(self.beginTime as u64),
-            elapsedTime: TimeCount::FromMicroSeconds(self.elapsedTime.try_into().unwrap()),
+            elapsedTime: TimeCount::from_microsecs(self.elapsedTime.try_into().unwrap()),
             schedulingDiscipline: self.schedulingDiscipline,
 
-            userCpuTime: TimeCount::FromMicroSeconds(self.userCpuTime.try_into().unwrap()),
-            systemCpuTime: TimeCount::FromMicroSeconds(self.systemCpuTime.try_into().unwrap()),
+            userCpuTime: TimeCount::from_microsecs(self.userCpuTime.try_into().unwrap()),
+            systemCpuTime: TimeCount::from_microsecs(self.systemCpuTime.try_into().unwrap()),
 
-            accumulatedRss: DataCount::FromMB(self.accumulatedRss.try_into().unwrap()),
-            accumulatedVss: DataCount::FromMB(self.accumulatedVss.try_into().unwrap()),
+            accumulatedRss: DataCount::from_mb(self.accumulatedRss.try_into().unwrap()),
+            accumulatedVss: DataCount::from_mb(self.accumulatedVss.try_into().unwrap()),
 
-            highWaterRss: DataCount::FromKB(self.highWaterRss.try_into().unwrap()),
-            highWaterVss: DataCount::FromKB(self.highWaterVss.try_into().unwrap()),
+            highWaterRss: DataCount::from_kb(self.highWaterRss.try_into().unwrap()),
+            highWaterVss: DataCount::from_kb(self.highWaterVss.try_into().unwrap()),
 
-            ioRead: DataCount::FromByte(self.ioReadBytes.try_into().unwrap()),
-            ioWrite: DataCount::FromByte(self.ioWriteBytes.try_into().unwrap()),
+            ioRead: DataCount::from_byte(self.ioReadBytes.try_into().unwrap()),
+            ioWrite: DataCount::from_byte(self.ioWriteBytes.try_into().unwrap()),
 
-            readSyscallCount: Count::New(self.readSyscallCount.try_into().unwrap()),
-            writeSyscallCount: Count::New(self.writeSyscallCount.try_into().unwrap()),
+            readSyscallCount: Count::new(self.readSyscallCount.try_into().unwrap()),
+            writeSyscallCount: Count::new(self.writeSyscallCount.try_into().unwrap()),
 
-            blockIORead: DataCount::FromByte(self.blockIOReadBytes.try_into().unwrap()),
-            blockIOWrite: DataCount::FromByte(self.blockIOWriteBytes.try_into().unwrap()),
-            cancelledBlockIOWrite: DataCount::FromByte(
+            blockIORead: DataCount::from_byte(self.blockIOReadBytes.try_into().unwrap()),
+            blockIOWrite: DataCount::from_byte(self.blockIOWriteBytes.try_into().unwrap()),
+            cancelledBlockIOWrite: DataCount::from_byte(
                 self.cancelledBlockIOWriteBytes.try_into().unwrap(),
             ),
 
-            cpuDelayCount: Count::New(self.cpuDelayCount.try_into().unwrap()),
-            cpuDelayTotal: TimeCount::FromNanoSeconds(self.cpuDelayTotal.try_into().unwrap()),
+            cpuDelayCount: Count::new(self.cpuDelayCount.try_into().unwrap()),
+            cpuDelayTotal: TimeCount::from_nanosecs(self.cpuDelayTotal.try_into().unwrap()),
 
-            minorFaultCount: Count::New(self.minorFaultCount.try_into().unwrap()),
-            majorFaultCount: Count::New(self.majorFaultCount.try_into().unwrap()),
+            minorFaultCount: Count::new(self.minorFaultCount.try_into().unwrap()),
+            majorFaultCount: Count::new(self.majorFaultCount.try_into().unwrap()),
 
-            freePagesDelayCount: Count::New(self.freePagesDelayCount.try_into().unwrap()),
-            freePagesDelayTotal: TimeCount::FromNanoSeconds(
+            freePagesDelayCount: Count::new(self.freePagesDelayCount.try_into().unwrap()),
+            freePagesDelayTotal: TimeCount::from_nanosecs(
                 self.freePagesDelayTotal.try_into().unwrap(),
             ),
 
-            thrashingDelayCount: Count::New(self.thrashingDelayCount.try_into().unwrap()),
-            thrashingDelayTotal: TimeCount::FromNanoSeconds(
+            thrashingDelayCount: Count::new(self.thrashingDelayCount.try_into().unwrap()),
+            thrashingDelayTotal: TimeCount::from_nanosecs(
                 self.thrashingDelayTotal.try_into().unwrap(),
             ),
 
-            blockIODelayCount: Count::New(self.blockIODelayCount.try_into().unwrap()),
-            blockIODelayTotal: TimeCount::FromNanoSeconds(
+            blockIODelayCount: Count::new(self.blockIODelayCount.try_into().unwrap()),
+            blockIODelayTotal: TimeCount::from_nanosecs(
                 self.blockIODelayTotal.try_into().unwrap(),
             ),
 
-            swapinDelayCount: Count::New(self.swapinDelayCount.try_into().unwrap()),
-            swapinDelayTotal: TimeCount::FromNanoSeconds(self.swapinDelayTotal.try_into().unwrap()),
+            swapinDelayCount: Count::new(self.swapinDelayCount.try_into().unwrap()),
+            swapinDelayTotal: TimeCount::from_nanosecs(self.swapinDelayTotal.try_into().unwrap()),
 
-            memoryCompactDelayCount: Count::New(0),
-            memoryCompactDelayTotal: TimeCount::FromNanoSeconds(0),
+            memoryCompactDelayCount: Count::new(0),
+            memoryCompactDelayTotal: TimeCount::from_nanosecs(0),
 
-            voluntaryContextSwitches: Count::New(self.voluntaryContextSwitches.try_into().unwrap()),
-            nonvoluntaryContextSwitches: Count::New(
+            voluntaryContextSwitches: Count::new(self.voluntaryContextSwitches.try_into().unwrap()),
+            nonvoluntaryContextSwitches: Count::new(
                 self.nonvoluntaryContextSwitches.try_into().unwrap(),
             ),
 
-            cpuRuntimeRealTotal: TimeCount::FromNanoSeconds(
+            cpuRuntimeRealTotal: TimeCount::from_nanosecs(
                 self.cpuRuntimeRealTotal.try_into().unwrap(),
             ),
-            cpuRuntimeVirtualTotal: TimeCount::FromNanoSeconds(
+            cpuRuntimeVirtualTotal: TimeCount::from_nanosecs(
                 self.cpuRuntimeVirtualTotal.try_into().unwrap(),
             ),
 
-            userTimeScaled: TimeCount::FromNanoSeconds(self.userTimeScaled.try_into().unwrap()),
-            systemTimeScaled: TimeCount::FromNanoSeconds(self.systemTimeScaled.try_into().unwrap()),
-            runRealTotalScaled: TimeCount::FromNanoSeconds(
+            userTimeScaled: TimeCount::from_nanosecs(self.userTimeScaled.try_into().unwrap()),
+            systemTimeScaled: TimeCount::from_nanosecs(self.systemTimeScaled.try_into().unwrap()),
+            runRealTotalScaled: TimeCount::from_nanosecs(
                 self.runRealTotalScaled.try_into().unwrap(),
             ),
         }
@@ -716,83 +716,83 @@ impl TaskStatsRawV11 {
         TaskStats {
             commandString: self.CommandString(),
             pid: Pid::New(self.pid as usize),
-            uid: Uid::New(self.uid as usize),
-            gid: Gid::New(self.gid as usize),
+            uid: Uid::new(self.uid as usize),
+            gid: Gid::new(self.gid as usize),
             parentPid: Pid::New(self.parentPid as usize),
             nice: self.nice as isize,
             flags: self.flags as usize,
             exitcode: self.exitcode as usize,
-            timestamp: Timestamp::GetCurrentTimestamp(),
+            timestamp: Timestamp::get_curr_timestamp(),
 
             beginTime: UNIX_EPOCH + Duration::from_secs(self.beginTime as u64),
-            elapsedTime: TimeCount::FromMicroSeconds(self.elapsedTime.try_into().unwrap()),
+            elapsedTime: TimeCount::from_microsecs(self.elapsedTime.try_into().unwrap()),
             schedulingDiscipline: self.schedulingDiscipline,
 
-            userCpuTime: TimeCount::FromMicroSeconds(self.userCpuTime.try_into().unwrap()),
-            systemCpuTime: TimeCount::FromMicroSeconds(self.systemCpuTime.try_into().unwrap()),
+            userCpuTime: TimeCount::from_microsecs(self.userCpuTime.try_into().unwrap()),
+            systemCpuTime: TimeCount::from_microsecs(self.systemCpuTime.try_into().unwrap()),
 
-            accumulatedRss: DataCount::FromMB(self.accumulatedRss.try_into().unwrap()),
-            accumulatedVss: DataCount::FromMB(self.accumulatedVss.try_into().unwrap()),
+            accumulatedRss: DataCount::from_mb(self.accumulatedRss.try_into().unwrap()),
+            accumulatedVss: DataCount::from_mb(self.accumulatedVss.try_into().unwrap()),
 
-            highWaterRss: DataCount::FromKB(self.highWaterRss.try_into().unwrap()),
-            highWaterVss: DataCount::FromKB(self.highWaterVss.try_into().unwrap()),
+            highWaterRss: DataCount::from_kb(self.highWaterRss.try_into().unwrap()),
+            highWaterVss: DataCount::from_kb(self.highWaterVss.try_into().unwrap()),
 
-            ioRead: DataCount::FromByte(self.ioReadBytes.try_into().unwrap()),
-            ioWrite: DataCount::FromByte(self.ioWriteBytes.try_into().unwrap()),
+            ioRead: DataCount::from_byte(self.ioReadBytes.try_into().unwrap()),
+            ioWrite: DataCount::from_byte(self.ioWriteBytes.try_into().unwrap()),
 
-            readSyscallCount: Count::New(self.readSyscallCount.try_into().unwrap()),
-            writeSyscallCount: Count::New(self.writeSyscallCount.try_into().unwrap()),
+            readSyscallCount: Count::new(self.readSyscallCount.try_into().unwrap()),
+            writeSyscallCount: Count::new(self.writeSyscallCount.try_into().unwrap()),
 
-            blockIORead: DataCount::FromByte(self.blockIOReadBytes.try_into().unwrap()),
-            blockIOWrite: DataCount::FromByte(self.blockIOWriteBytes.try_into().unwrap()),
-            cancelledBlockIOWrite: DataCount::FromByte(
+            blockIORead: DataCount::from_byte(self.blockIOReadBytes.try_into().unwrap()),
+            blockIOWrite: DataCount::from_byte(self.blockIOWriteBytes.try_into().unwrap()),
+            cancelledBlockIOWrite: DataCount::from_byte(
                 self.cancelledBlockIOWriteBytes.try_into().unwrap(),
             ),
 
-            cpuDelayCount: Count::New(self.cpuDelayCount.try_into().unwrap()),
-            cpuDelayTotal: TimeCount::FromNanoSeconds(self.cpuDelayTotal.try_into().unwrap()),
+            cpuDelayCount: Count::new(self.cpuDelayCount.try_into().unwrap()),
+            cpuDelayTotal: TimeCount::from_nanosecs(self.cpuDelayTotal.try_into().unwrap()),
 
-            minorFaultCount: Count::New(self.minorFaultCount.try_into().unwrap()),
-            majorFaultCount: Count::New(self.majorFaultCount.try_into().unwrap()),
+            minorFaultCount: Count::new(self.minorFaultCount.try_into().unwrap()),
+            majorFaultCount: Count::new(self.majorFaultCount.try_into().unwrap()),
 
-            freePagesDelayCount: Count::New(self.freePagesDelayCount.try_into().unwrap()),
-            freePagesDelayTotal: TimeCount::FromNanoSeconds(
+            freePagesDelayCount: Count::new(self.freePagesDelayCount.try_into().unwrap()),
+            freePagesDelayTotal: TimeCount::from_nanosecs(
                 self.freePagesDelayTotal.try_into().unwrap(),
             ),
 
-            thrashingDelayCount: Count::New(self.thrashingDelayCount.try_into().unwrap()),
-            thrashingDelayTotal: TimeCount::FromNanoSeconds(
+            thrashingDelayCount: Count::new(self.thrashingDelayCount.try_into().unwrap()),
+            thrashingDelayTotal: TimeCount::from_nanosecs(
                 self.thrashingDelayTotal.try_into().unwrap(),
             ),
 
-            blockIODelayCount: Count::New(self.blockIODelayCount.try_into().unwrap()),
-            blockIODelayTotal: TimeCount::FromNanoSeconds(
+            blockIODelayCount: Count::new(self.blockIODelayCount.try_into().unwrap()),
+            blockIODelayTotal: TimeCount::from_nanosecs(
                 self.blockIODelayTotal.try_into().unwrap(),
             ),
 
-            swapinDelayCount: Count::New(self.swapinDelayCount.try_into().unwrap()),
-            swapinDelayTotal: TimeCount::FromNanoSeconds(self.swapinDelayTotal.try_into().unwrap()),
+            swapinDelayCount: Count::new(self.swapinDelayCount.try_into().unwrap()),
+            swapinDelayTotal: TimeCount::from_nanosecs(self.swapinDelayTotal.try_into().unwrap()),
 
-            memoryCompactDelayCount: Count::New(self.memoryCompactDelayCount.try_into().unwrap()),
-            memoryCompactDelayTotal: TimeCount::FromNanoSeconds(
+            memoryCompactDelayCount: Count::new(self.memoryCompactDelayCount.try_into().unwrap()),
+            memoryCompactDelayTotal: TimeCount::from_nanosecs(
                 self.memoryCompactDelayTotal.try_into().unwrap(),
             ),
 
-            voluntaryContextSwitches: Count::New(self.voluntaryContextSwitches.try_into().unwrap()),
-            nonvoluntaryContextSwitches: Count::New(
+            voluntaryContextSwitches: Count::new(self.voluntaryContextSwitches.try_into().unwrap()),
+            nonvoluntaryContextSwitches: Count::new(
                 self.nonvoluntaryContextSwitches.try_into().unwrap(),
             ),
 
-            cpuRuntimeRealTotal: TimeCount::FromNanoSeconds(
+            cpuRuntimeRealTotal: TimeCount::from_nanosecs(
                 self.cpuRuntimeRealTotal.try_into().unwrap(),
             ),
-            cpuRuntimeVirtualTotal: TimeCount::FromNanoSeconds(
+            cpuRuntimeVirtualTotal: TimeCount::from_nanosecs(
                 self.cpuRuntimeVirtualTotal.try_into().unwrap(),
             ),
 
-            userTimeScaled: TimeCount::FromNanoSeconds(self.userTimeScaled.try_into().unwrap()),
-            systemTimeScaled: TimeCount::FromNanoSeconds(self.systemTimeScaled.try_into().unwrap()),
-            runRealTotalScaled: TimeCount::FromNanoSeconds(
+            userTimeScaled: TimeCount::from_nanosecs(self.userTimeScaled.try_into().unwrap()),
+            systemTimeScaled: TimeCount::from_nanosecs(self.systemTimeScaled.try_into().unwrap()),
+            runRealTotalScaled: TimeCount::from_nanosecs(
                 self.runRealTotalScaled.try_into().unwrap(),
             ),
         }
@@ -924,7 +924,7 @@ pub enum TaskStatsCommand {
 
 impl Into<GenericNetlinkMessageCommand> for TaskStatsCommand {
     fn into(self) -> GenericNetlinkMessageCommand {
-        GenericNetlinkMessageCommand::New(self as u8)
+        GenericNetlinkMessageCommand::new(self as u8)
     }
 }
 
@@ -966,14 +966,14 @@ impl TaskStatsAttribute {
 
 impl Into<GenericNetlinkMessageAttribute> for TaskStatsAttribute {
     fn into(self) -> GenericNetlinkMessageAttribute {
-        GenericNetlinkMessageAttribute::New(self.attributeType.into(), self.payload)
+        GenericNetlinkMessageAttribute::new(self.attributeType.into(), self.payload)
     }
 }
 
 impl From<GenericNetlinkMessageAttribute> for TaskStatsAttribute {
     fn from(genericNetlinkMessageAttribute: GenericNetlinkMessageAttribute) -> Self {
         TaskStatsAttribute::New(
-            genericNetlinkMessageAttribute.Type().into(),
+            genericNetlinkMessageAttribute.get_type().into(),
             genericNetlinkMessageAttribute.payload,
         )
     }
@@ -990,7 +990,7 @@ impl TaskStatsAttributeType {
 
 impl Into<GenericNetlinkMessageAttributeType> for TaskStatsAttributeType {
     fn into(self) -> GenericNetlinkMessageAttributeType {
-        GenericNetlinkMessageAttributeType::New(self.0)
+        GenericNetlinkMessageAttributeType::new(self.0)
     }
 }
 
@@ -1121,18 +1121,18 @@ impl Into<GenericNetlinkMessageAttribute> for TaskStatsResultAttribute {
     fn into(self) -> GenericNetlinkMessageAttribute {
         match self {
             Self::UNSPECIFIED => {
-                GenericNetlinkMessageAttribute::New(self.Type().into(), [].to_vec())
+                GenericNetlinkMessageAttribute::new(self.Type().into(), [].to_vec())
             }
-            Self::PID(tid) => GenericNetlinkMessageAttribute::New(
+            Self::PID(tid) => GenericNetlinkMessageAttribute::new(
                 self.Type().into(),
                 (Into::<u32>::into(tid)).to_le_bytes().to_vec(),
             ),
-            Self::TGID(pid) => GenericNetlinkMessageAttribute::New(
+            Self::TGID(pid) => GenericNetlinkMessageAttribute::new(
                 self.Type().into(),
                 (Into::<u32>::into(pid)).to_le_bytes().to_vec(),
             ),
             Self::STATS(stats) => {
-                GenericNetlinkMessageAttribute::New(self.Type().into(), stats.ToByteArray())
+                GenericNetlinkMessageAttribute::new(self.Type().into(), stats.ToByteArray())
             }
             Self::AGGR_PID(_aggregatePid) => {
                 unimplemented!()
@@ -1140,7 +1140,7 @@ impl Into<GenericNetlinkMessageAttribute> for TaskStatsResultAttribute {
             Self::AGGR_TGID(_aggregateTgid) => {
                 unimplemented!()
             }
-            Self::NULL => GenericNetlinkMessageAttribute::New(self.Type().into(), [].to_vec()),
+            Self::NULL => GenericNetlinkMessageAttribute::new(self.Type().into(), [].to_vec()),
         }
     }
 }
@@ -1196,7 +1196,7 @@ pub enum TaskStatsResultAttributeType {
 
 impl Into<GenericNetlinkMessageAttributeType> for TaskStatsResultAttributeType {
     fn into(self) -> GenericNetlinkMessageAttributeType {
-        GenericNetlinkMessageAttributeType::New(self as u16)
+        GenericNetlinkMessageAttributeType::new(self as u16)
     }
 }
 
@@ -1261,13 +1261,13 @@ impl TaskStatsMessage {
 
 impl Into<GenericNetlinkMessage> for TaskStatsMessage {
     fn into(self) -> GenericNetlinkMessage {
-        let mut genericNetlinkMessage = GenericNetlinkMessage::New(
-            GenericNetlinkMessageType::New(self.familyId),
+        let mut genericNetlinkMessage = GenericNetlinkMessage::new(
+            GenericNetlinkMessageType::new(self.familyId),
             self.command.into(),
         );
 
         for attribute in self.attributes {
-            genericNetlinkMessage.AddAttribute(attribute.into());
+            genericNetlinkMessage.add_attr(attribute.into());
         }
 
         genericNetlinkMessage
@@ -1278,8 +1278,8 @@ impl TryFrom<GenericNetlinkMessage> for TaskStatsMessage {
     type Error = TaskStatsError;
 
     fn try_from(genericNetlinkMessage: GenericNetlinkMessage) -> Result<Self, Self::Error> {
-        let familyId: u16 = genericNetlinkMessage.MessageType().into();
-        let command = genericNetlinkMessage.Command().try_into()?;
+        let familyId: u16 = genericNetlinkMessage.get_message_type().into();
+        let command = genericNetlinkMessage.get_command().try_into()?;
 
         let mut attributes = Vec::new();
 
@@ -1307,22 +1307,22 @@ impl TaskStatsConnection {
     const TASKSTATS_FAMILY_NAME: &'static str = "TASKSTATS";
 
     pub fn New() -> Result<Self, TaskStatsError> {
-        let genericNetlinkConnection = GenericNetlinkConnection::New()?;
+        let genericNetlinkConnection = GenericNetlinkConnection::new()?;
 
         let mut getFamilyIdMessage =
-            GenericNetlinkControlMessage::New(GenericNetlinkControlMessageCommand::GET_FAMILY_ID);
+            GenericNetlinkControlMessage::new(GenericNetlinkControlMessageCommand::GetFamilyId);
 
-        getFamilyIdMessage.AddControlAttribute(GenericNetlinkControlMessageAttribute::FAMILY_NAME(
+        getFamilyIdMessage.add_ctrl_attr(GenericNetlinkControlMessageAttribute::FamilyName(
             String::from(Self::TASKSTATS_FAMILY_NAME),
         ));
 
-        genericNetlinkConnection.Send(getFamilyIdMessage.into())?;
+        genericNetlinkConnection.send(getFamilyIdMessage.into())?;
 
-        let respondMessage = genericNetlinkConnection.Recv()?;
+        let respondMessage = genericNetlinkConnection.recv()?;
         let respondMessage: GenericNetlinkControlMessage = respondMessage.try_into()?;
 
-        if let GenericNetlinkControlMessageAttribute::FAMILY_ID(familyId) = respondMessage
-            .GetControlAttribute(GenericNetlinkControlMessageAttributeType::FAMILY_ID)
+        if let GenericNetlinkControlMessageAttribute::FamilyId(familyId) = respondMessage
+            .get_ctrl_attr(GenericNetlinkControlMessageAttributeType::FamilyId)
             .unwrap()
         {
             Ok(Self {
@@ -1341,8 +1341,8 @@ impl TaskStatsConnection {
         taskStatsMessage.AddCommandAttribute(TaskStatsCommandAttribute::PID(realTid));
 
         self.genericNetlinkConnection
-            .Send(taskStatsMessage.into())?;
-        let respondMessage: TaskStatsMessage = self.genericNetlinkConnection.Recv()?.try_into()?;
+            .send(taskStatsMessage.into())?;
+        let respondMessage: TaskStatsMessage = self.genericNetlinkConnection.recv()?.try_into()?;
 
         let result = respondMessage.GetResultAttribute(TaskStatsResultAttributeType::AGGR_PID);
 
@@ -1369,8 +1369,8 @@ impl TaskStatsConnection {
         taskStatsMessage.AddCommandAttribute(TaskStatsCommandAttribute::TGID(realPid));
 
         self.genericNetlinkConnection
-            .Send(taskStatsMessage.into())?;
-        let respondMessage: TaskStatsMessage = self.genericNetlinkConnection.Recv()?.try_into()?;
+            .send(taskStatsMessage.into())?;
+        let respondMessage: TaskStatsMessage = self.genericNetlinkConnection.recv()?.try_into()?;
 
         let result = respondMessage.GetResultAttribute(TaskStatsResultAttributeType::AGGR_TGID);
 

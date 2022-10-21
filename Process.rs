@@ -99,14 +99,14 @@ impl ConnectionStat {
         Self {
             connection,
 
-            packetSent: Count::New(0),
-            packetRecv: Count::New(0),
+            packetSent: Count::new(0),
+            packetRecv: Count::new(0),
 
-            totalDataSent: DataCount::FromByte(0),
-            totalDataRecv: DataCount::FromByte(0),
+            totalDataSent: DataCount::from_byte(0),
+            totalDataRecv: DataCount::from_byte(0),
 
-            realDataSent: DataCount::FromByte(0),
-            realDataRecv: DataCount::FromByte(0),
+            realDataSent: DataCount::from_byte(0),
+            realDataRecv: DataCount::from_byte(0),
         }
     }
 
@@ -207,14 +207,14 @@ impl InterfaceStat {
         Self {
             interfaceName: String::from(interfaceName),
 
-            packetSent: Count::New(0),
-            packetRecv: Count::New(0),
+            packetSent: Count::new(0),
+            packetRecv: Count::new(0),
 
-            totalDataSent: DataCount::FromByte(0),
-            totalDataRecv: DataCount::FromByte(0),
+            totalDataSent: DataCount::from_byte(0),
+            totalDataRecv: DataCount::from_byte(0),
 
-            realDataSent: DataCount::FromByte(0),
-            realDataRecv: DataCount::FromByte(0),
+            realDataSent: DataCount::from_byte(0),
+            realDataRecv: DataCount::from_byte(0),
 
             connectionStats: HashMap::new(),
         }
@@ -333,14 +333,14 @@ pub struct NetworkStat {
 impl NetworkStat {
     pub fn New() -> Self {
         Self {
-            packetSent: Count::New(0),
-            packetRecv: Count::New(0),
+            packetSent: Count::new(0),
+            packetRecv: Count::new(0),
 
-            totalDataSent: DataCount::FromByte(0),
-            totalDataRecv: DataCount::FromByte(0),
+            totalDataSent: DataCount::from_byte(0),
+            totalDataRecv: DataCount::from_byte(0),
 
-            realDataSent: DataCount::FromByte(0),
-            realDataRecv: DataCount::FromByte(0),
+            realDataSent: DataCount::from_byte(0),
+            realDataRecv: DataCount::from_byte(0),
 
             interfaceStats: HashMap::new(),
         }
@@ -450,17 +450,17 @@ pub struct ThreadStat {
 impl ThreadStat {
     pub fn New() -> Self {
         Self {
-            timestamp: Timestamp::GetCurrentTimestamp(),
+            timestamp: Timestamp::get_curr_timestamp(),
 
-            totalSystemCpuTime: TimeCount::FromSeconds(0),
-            totalUserCpuTime: TimeCount::FromSeconds(0),
-            totalCpuTime: TimeCount::FromSeconds(0),
+            totalSystemCpuTime: TimeCount::from_secs(0),
+            totalUserCpuTime: TimeCount::from_secs(0),
+            totalCpuTime: TimeCount::from_secs(0),
 
-            totalIORead: DataCount::FromByte(0),
-            totalIOWrite: DataCount::FromByte(0),
+            totalIORead: DataCount::from_byte(0),
+            totalIOWrite: DataCount::from_byte(0),
 
-            totalBlockIORead: DataCount::FromByte(0),
-            totalBlockIOWrite: DataCount::FromByte(0),
+            totalBlockIORead: DataCount::from_byte(0),
+            totalBlockIOWrite: DataCount::from_byte(0),
         }
     }
 
@@ -513,21 +513,21 @@ pub struct ProcessStat {
 impl ProcessStat {
     pub fn New() -> Self {
         Self {
-            timestamp: Timestamp::GetCurrentTimestamp(),
+            timestamp: Timestamp::get_curr_timestamp(),
 
-            totalSystemCpuTime: TimeCount::FromSeconds(0),
-            totalUserCpuTime: TimeCount::FromSeconds(0),
-            totalCpuTime: TimeCount::FromSeconds(0),
+            totalSystemCpuTime: TimeCount::from_secs(0),
+            totalUserCpuTime: TimeCount::from_secs(0),
+            totalCpuTime: TimeCount::from_secs(0),
 
-            totalRss: DataCount::FromByte(0),
-            totalVss: DataCount::FromByte(0),
-            totalSwap: DataCount::FromByte(0),
+            totalRss: DataCount::from_byte(0),
+            totalVss: DataCount::from_byte(0),
+            totalSwap: DataCount::from_byte(0),
 
-            totalIORead: DataCount::FromByte(0),
-            totalIOWrite: DataCount::FromByte(0),
+            totalIORead: DataCount::from_byte(0),
+            totalIOWrite: DataCount::from_byte(0),
 
-            totalBlockIORead: DataCount::FromByte(0),
-            totalBlockIOWrite: DataCount::FromByte(0),
+            totalBlockIORead: DataCount::from_byte(0),
+            totalBlockIOWrite: DataCount::from_byte(0),
 
             networkStat: NetworkStat::New(),
         }
@@ -861,9 +861,9 @@ impl Process {
             )
         };
 
-        self.stat.totalVss += DataCount::FromKB(vss);
-        self.stat.totalRss += DataCount::FromKB(rss);
-        self.stat.totalSwap += DataCount::FromKB(swap);
+        self.stat.totalVss += DataCount::from_kb(vss);
+        self.stat.totalRss += DataCount::from_kb(rss);
+        self.stat.totalSwap += DataCount::from_kb(swap);
 
         // build network stat
 
@@ -1038,17 +1038,17 @@ impl UidMapEntry {
     pub fn New(uidStart: Uid, realUidStart: Uid, length: usize) -> Self {
         Self {
             uidStart,
-            uidEnd: Uid::New(uidStart.ToUsize() + length),
+            uidEnd: Uid::new(uidStart.to_usize() + length),
             realUidStart,
-            realUidEnd: Uid::New(realUidStart.ToUsize() + length),
+            realUidEnd: Uid::new(realUidStart.to_usize() + length),
             length,
         }
     }
 
     pub fn MapToUid(&self, realUid: Uid) -> Option<Uid> {
         if realUid >= self.realUidStart && realUid <= self.realUidEnd {
-            Some(Uid::New(
-                self.uidStart.ToUsize() + realUid.ToUsize() - self.realUidStart.ToUsize(),
+            Some(Uid::new(
+                self.uidStart.to_usize() + realUid.to_usize() - self.realUidStart.to_usize(),
             ))
         } else {
             None
@@ -1070,8 +1070,8 @@ impl TryFrom<&str> for UidMapEntry {
             return Err(ProcessError::UID_MAP_ERROR);
         }
 
-        let start = Uid::New(values[0]);
-        let realStart = Uid::New(values[1]);
+        let start = Uid::new(values[0]);
+        let realStart = Uid::new(values[1]);
         let length = values[2];
 
         // check length
@@ -1152,17 +1152,17 @@ impl GidMapEntry {
     pub fn New(gidStart: Gid, realGidStart: Gid, length: usize) -> Self {
         Self {
             gidStart,
-            gidEnd: Gid::New(gidStart.ToUsize() + length),
+            gidEnd: Gid::new(gidStart.to_usize() + length),
             realGidStart,
-            realGidEnd: Gid::New(realGidStart.ToUsize() + length),
+            realGidEnd: Gid::new(realGidStart.to_usize() + length),
             length,
         }
     }
 
     pub fn MapToGid(&self, realGid: Gid) -> Option<Gid> {
         if realGid >= self.realGidStart && realGid <= self.realGidEnd {
-            Some(Gid::New(
-                self.gidStart.ToUsize() + realGid.ToUsize() - self.realGidStart.ToUsize(),
+            Some(Gid::new(
+                self.gidStart.to_usize() + realGid.to_usize() - self.realGidStart.to_usize(),
             ))
         } else {
             None
@@ -1184,8 +1184,8 @@ impl TryFrom<&str> for GidMapEntry {
             return Err(ProcessError::GID_MAP_ERROR);
         }
 
-        let start = Gid::New(values[0]);
-        let realStart = Gid::New(values[1]);
+        let start = Gid::new(values[0]);
+        let realStart = Gid::new(values[1]);
         let length = values[2];
 
         // check length

@@ -1,2 +1,0 @@
-cargo:rustc-flags=-L /home/yoru/G/Thesis/Source/MonitorDaemon/lib
-cargo:rustc-link-lib=static=pcap

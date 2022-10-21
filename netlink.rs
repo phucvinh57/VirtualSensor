@@ -121,7 +121,7 @@ impl fmt::Display for NetlinkProtocol {
 pub struct NetlinkMessageType(u16);
 
 impl NetlinkMessageType {
-    pub fn New(value: u16) -> Self {
+    pub fn new(value: u16) -> Self {
         Self(value)
     }
 }
@@ -158,7 +158,7 @@ impl TryFrom<u16> for StandardNetlinkMessageType {
 
 impl Into<NetlinkMessageType> for StandardNetlinkMessageType {
     fn into(self) -> NetlinkMessageType {
-        NetlinkMessageType::New(self as u16)
+        NetlinkMessageType::new(self as u16)
     }
 }
 
@@ -173,7 +173,7 @@ impl NetlinkMessagePayload {
 
     pub fn ToByteArray(&self) -> Vec<u8> {
         match self {
-            Self::GENERIC(genericPayload) => genericPayload.ToByteArray(),
+            Self::GENERIC(genericPayload) => genericPayload.to_byte_array(),
             Self::UNIMPLEMENTED => panic!("Unimplemented netlink message payload"),
         }
     }
@@ -398,7 +398,7 @@ impl NetlinkMessage {
         let header = NetlinkMessageHeader::New(payload.len(), self.messageType.into(), flags, 0, 0);
 
         result.append(&mut header.ToByteArray());
-        common::AlignBuffer(&mut result, NetlinkMessagePayload::ALIGN);
+        common::align_buffer(&mut result, NetlinkMessagePayload::ALIGN);
         result.append(&mut payload);
         result
     }
@@ -409,7 +409,7 @@ impl NetlinkMessage {
     ) -> Result<Self, NetlinkError> {
         let netlinkMessageHeader = NetlinkMessageHeader::FromByteArray(&buf)?;
         let payloadStartIndex =
-            common::NextAlignNumber(NetlinkMessageHeader::LENGTH, NetlinkMessagePayload::ALIGN);
+            common::next_align_num(NetlinkMessageHeader::LENGTH, NetlinkMessagePayload::ALIGN);
 
         println!("{:?}", netlinkMessageHeader.messageLength as u32); // 0
         println!("{:?}", payloadStartIndex as u32);
@@ -429,8 +429,8 @@ impl NetlinkMessage {
 
         match payloadType {
             NetlinkMessagePayloadType::GENERIC => {
-                let messageType = GenericNetlinkMessageType::New(netlinkMessageHeader.messageType);
-                let payload = GenericNetlinkMessage::FromByteArray(
+                let messageType = GenericNetlinkMessageType::new(netlinkMessageHeader.messageType);
+                let payload = GenericNetlinkMessage::from_byte_array(
                     &buf[payloadStartIndex..payloadStartIndex + payloadSize],
                     messageType,
                 )?;
@@ -457,7 +457,7 @@ struct NetlinkAttributeHeader {
 impl NetlinkAttributeHeader {
     const LENGTH: usize = mem::size_of::<NetlinkAttributeHeader>();
 
-    pub fn New(payloadLength: usize, attributeType: NetlinkMessageAttributeType) -> Self {
+    pub fn new(payloadLength: usize, attributeType: NetlinkMessageAttributeType) -> Self {
         Self {
             length: (payloadLength + Self::LENGTH) as u16,
             attributeType: attributeType.into(),
@@ -521,7 +521,7 @@ pub struct NetlinkConnection {
 impl NetlinkConnection {
     const BUFFER_SIZE: usize = 1024;
 
-    pub fn New(protocol: NetlinkProtocol) -> Result<Self, NetlinkError> {
+    pub fn new(protocol: NetlinkProtocol) -> Result<Self, NetlinkError> {
         let mut socket = Socket::new(protocols::NETLINK_GENERIC)?;
         let selfAddress = socket.bind_auto()?;
 
