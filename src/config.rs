@@ -15,7 +15,7 @@ pub struct MonitorTarget {
     pub pid_list: Vec<Pid>,
 }
 
-// TODO: add fields to config struc
+// TODO: add fields to config struct
 #[derive(Debug, Clone, Deserialize)]
 pub struct DaemonConfig {
     old_kernel: bool,

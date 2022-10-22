@@ -12,10 +12,12 @@ name = "virtual_sensor"
 path = "src/main.rs"
 
 [dependencies]
-libc = "*"
-netlink-sys = "*"
-lazy_static = "*"
+libc = "0.2.112"
+netlink-sys = "0.7.0"
+lazy_static = "1.4.0"
 pcap = "0.9.1"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "*"
-config-file = "*"
+serde_json = "1.0.79"
+config-file = "0.2.1"
+
+
