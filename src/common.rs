@@ -207,8 +207,8 @@ impl AddAssign<Self> for Count {
 }
 
 pub enum Endian {
-    LITTLE,
-    BIG,
+    Little,
+    Big,
 }
 
 pub fn align_buffer(buf: &mut Vec<u8>, align: usize) {
@@ -226,7 +226,7 @@ pub fn parse_hex_str(input: &str, endian: Endian) -> Result<Vec<u8>, CommonError
     }
 
     match endian {
-        Endian::LITTLE => (0..input.len())
+        Endian::Little => (0..input.len())
             .step_by(2)
             .rev()
             .map(|index| {
@@ -234,7 +234,7 @@ pub fn parse_hex_str(input: &str, endian: Endian) -> Result<Vec<u8>, CommonError
                     .map_err(|err| CommonError::ParseIntErr(err))
             })
             .collect(),
-        Endian::BIG => (0..input.len())
+        Endian::Big => (0..input.len())
             .step_by(2)
             .map(|index| {
                 u8::from_str_radix(&input[index..index + 2], 16)
@@ -256,9 +256,7 @@ impl std::error::Error for CommonError {}
 impl fmt::Display for CommonError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let result = match self {
-            Self::OddLenHexStr(len) => {
-                String::from(format!("Odd length hex string: {}", len))
-            }
+            Self::OddLenHexStr(len) => String::from(format!("Odd length hex string: {}", len)),
             Self::ParseIntErr(error) => String::from(format!("Parse integer error: {}", error)),
             Self::ConvertErr(string) => String::from(format!("Can't convert {}", string)),
         };
@@ -273,11 +271,7 @@ impl From<num::ParseIntError> for CommonError {
     }
 }
 
-pub fn addr_in_network(
-    addr: &IpAddr,
-    net_addr: &IpAddr,
-    net_mask: &IpAddr,
-) -> Result<bool, ()> {
+pub fn addr_in_network(addr: &IpAddr, net_addr: &IpAddr, net_mask: &IpAddr) -> Result<bool, ()> {
     // convert
 
     // check if they are same kind of address
@@ -287,7 +281,7 @@ pub fn addr_in_network(
             let addr = addr.octets();
             let net_addr = net_addr.octets();
             let net_mask = net_mask.octets();
-
+            
             // compare byte-by-byte
             for i in 0..addr.len() {
                 if addr[i] & net_mask[i] != net_addr[i] & net_mask[i] {

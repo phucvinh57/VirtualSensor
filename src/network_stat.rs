@@ -530,10 +530,10 @@ fn control_thread(
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
 
-                    let d = common::parse_hex_str(b[0], Endian::LITTLE)?;
-                    let e = common::parse_hex_str(b[1], Endian::BIG)?;
-                    let f = common::parse_hex_str(c[0], Endian::LITTLE)?;
-                    let g = common::parse_hex_str(c[1], Endian::BIG)?;
+                    let d = common::parse_hex_str(b[0], Endian::Little)?;
+                    let e = common::parse_hex_str(b[1], Endian::Big)?;
+                    let f = common::parse_hex_str(c[0], Endian::Little)?;
+                    let g = common::parse_hex_str(c[1], Endian::Big)?;
 
                     if d.len() != 4 || e.len() != 2 || f.len() != 4 || g.len() != 2 {
                         return Err(NetworkStatError::ConvertErr);
@@ -584,10 +584,10 @@ fn control_thread(
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
 
-                    let d = common::parse_hex_str(b[0], Endian::LITTLE)?;
-                    let e = common::parse_hex_str(b[1], Endian::BIG)?;
-                    let f = common::parse_hex_str(c[0], Endian::LITTLE)?;
-                    let g = common::parse_hex_str(c[1], Endian::BIG)?;
+                    let d = common::parse_hex_str(b[0], Endian::Little)?;
+                    let e = common::parse_hex_str(b[1], Endian::Big)?;
+                    let f = common::parse_hex_str(c[0], Endian::Little)?;
+                    let g = common::parse_hex_str(c[1], Endian::Big)?;
 
                     if d.len() != 16 || e.len() != 2 || f.len() != 16 || g.len() != 2 {
                         return Err(NetworkStatError::ConvertErr);
@@ -654,10 +654,10 @@ fn control_thread(
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
 
-                    let d = common::parse_hex_str(b[0], Endian::LITTLE)?;
-                    let e = common::parse_hex_str(b[1], Endian::BIG)?;
-                    let f = common::parse_hex_str(c[0], Endian::LITTLE)?;
-                    let g = common::parse_hex_str(c[1], Endian::BIG)?;
+                    let d = common::parse_hex_str(b[0], Endian::Little)?;
+                    let e = common::parse_hex_str(b[1], Endian::Big)?;
+                    let f = common::parse_hex_str(c[0], Endian::Little)?;
+                    let g = common::parse_hex_str(c[1], Endian::Big)?;
 
                     if d.len() != 4 || e.len() != 2 || f.len() != 4 || g.len() != 2 {
                         return Err(NetworkStatError::ConvertErr);
@@ -708,10 +708,10 @@ fn control_thread(
                     let b: Vec<&str> = a[1].split(':').collect();
                     let c: Vec<&str> = a[2].split(':').collect();
 
-                    let d = common::parse_hex_str(b[0], Endian::LITTLE)?;
-                    let e = common::parse_hex_str(b[1], Endian::BIG)?;
-                    let f = common::parse_hex_str(c[0], Endian::LITTLE)?;
-                    let g = common::parse_hex_str(c[1], Endian::BIG)?;
+                    let d = common::parse_hex_str(b[0], Endian::Little)?;
+                    let e = common::parse_hex_str(b[1], Endian::Big)?;
+                    let f = common::parse_hex_str(c[0], Endian::Little)?;
+                    let g = common::parse_hex_str(c[1], Endian::Big)?;
 
                     if d.len() != 16 || e.len() != 2 || f.len() != 16 || g.len() != 2 {
                         return Err(NetworkStatError::ConvertErr);

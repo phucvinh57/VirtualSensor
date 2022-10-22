@@ -1,8 +1,8 @@
-mod network_stat;
-mod process;
 mod common;
 mod config;
 mod netlink;
+mod network_stat;
+mod process;
 mod taskstat;
 
 use std::any::Any;
@@ -21,9 +21,9 @@ use serde::Serialize;
 use serde_json;
 
 use crate::config::ConfigError;
-use crate::taskstat::{TaskStatsConnection, TaskStatsError};
 use crate::network_stat::{NetworkRawStat, NetworkStatError};
 use crate::process::{Pid, ProcessError};
+use crate::taskstat::{TaskStatsConnection, TaskStatsError};
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct ContainerStat {
@@ -174,12 +174,17 @@ fn listen_thread() -> Result<(), DaemonError> {
                 }
 
                 // clean up network raw stat
-                total_stat.network_rawstat.remove_used_uni_connection_stats();
+                total_stat
+                    .network_rawstat
+                    .remove_used_uni_connection_stats();
 
                 // return result
                 if config::get_glob_conf().unwrap().is_print_pretty_output() {
-                    let _ =
-                        stream.write(serde_json::to_string_pretty(&total_stat).unwrap().as_bytes());
+                    let _ = stream.write(
+                        serde_json::to_string_pretty(&total_stat)
+                            .unwrap()
+                            .as_bytes(),
+                    );
                 } else {
                     let _ = stream.write(serde_json::to_string(&total_stat).unwrap().as_bytes());
                 }
@@ -241,12 +246,8 @@ impl fmt::Display for DaemonError {
             }
             Self::IOErr(io_err) => String::from(format!("IO error: {}", io_err)),
             Self::NoConfigPath => String::from("No config path"),
-            Self::ConfigErr(conf_err) => {
-                String::from(format!("Config error: {}", conf_err))
-            }
-            Self::ProcessErr(proc_err) => {
-                String::from(format!("Process error: {}", proc_err))
-            }
+            Self::ConfigErr(conf_err) => String::from(format!("Config error: {}", conf_err)),
+            Self::ProcessErr(proc_err) => String::from(format!("Process error: {}", proc_err)),
             Self::ListenThreadErr(listen_thread_err) => {
                 String::from(format!("Listen thread error: {:?}", listen_thread_err))
             }
