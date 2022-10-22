@@ -886,12 +886,12 @@ lazy_static! {
 
 pub fn init_network_stat_capture() -> Result<(), NetworkStatError> {
     let (_control_data_in_write_end, control_data_in_read_end) = mpsc::channel();
-    let (controll_data_out_write_end, _control_data_out_read_end) = mpsc::channel();
+    let (control_data_out_write_end, _control_data_out_read_end) = mpsc::channel();
 
     *CONTROL_DATA_IN_WRITE_END.lock()? = Some(_control_data_in_write_end);
     *CONTROL_DATA_IN_READ_END.lock()? = Some(_control_data_out_read_end);
 
-    thread::spawn(move || control_thread(control_data_in_read_end, controll_data_out_write_end));
+    thread::spawn(move || control_thread(control_data_in_read_end, control_data_out_write_end));
 
     Ok(())
 }

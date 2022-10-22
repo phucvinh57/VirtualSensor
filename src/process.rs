@@ -684,6 +684,7 @@ impl Thread {
     }
 }
 
+// TODO: Add new version of process
 #[derive(Debug, Clone, Serialize)]
 pub struct Process {
     // ids inside namespace
@@ -1010,6 +1011,7 @@ impl Process {
             };
 
             // build the child thread and process list
+
             let child_stat = match child_proc.build_proc_tree(taskstats_conn, net_rawstat)
             {
                 Ok(stat) => stat,

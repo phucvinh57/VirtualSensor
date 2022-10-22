@@ -15,6 +15,7 @@ pub struct MonitorTarget {
     pub pid_list: Vec<Pid>,
 }
 
+// TODO: add fields to config struc
 #[derive(Debug, Clone, Deserialize)]
 pub struct DaemonConfig {
     old_kernel: bool,
@@ -70,6 +71,7 @@ pub fn init_glob_conf(conf_path: &str) -> Result<(), ConfigError> {
     Ok(())
 }
 
+// TODO (get from file instead of from init_glob_conf result)
 pub fn get_glob_conf() -> Result<Arc<DaemonConfig>, ConfigError> {
     unsafe {
         match &GLOBAL_CONFIG {

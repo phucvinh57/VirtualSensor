@@ -272,9 +272,8 @@ impl From<num::ParseIntError> for CommonError {
 }
 
 pub fn addr_in_network(addr: &IpAddr, net_addr: &IpAddr, net_mask: &IpAddr) -> Result<bool, ()> {
-    // convert
-
     // check if they are same kind of address
+    
     match (addr, net_addr, net_mask) {
         (IpAddr::V4(addr), IpAddr::V4(net_addr), IpAddr::V4(net_mask)) => {
             // covert them to byte array

@@ -543,7 +543,7 @@ impl NetlinkConnection {
     pub fn recv(&self) -> Result<NetlinkMessage, NetlinkError> {
         let mut buf = vec![0; Self::BUFFER_SIZE];
         self.socket.recv(&mut buf, 0)?;
-
+        
         let payload_type = match self.protocol {
             NetlinkProtocol::Generic => NetlinkMessagePayloadType::Generic,
             _ => return Err(NetlinkError::UnsupportedProtocol(self.protocol)),

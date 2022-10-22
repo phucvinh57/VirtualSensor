@@ -55,6 +55,7 @@ impl TotalStat {
     }
 }
 
+// TODO
 fn get_processes_stats(
     real_pid_list: &[Pid],
     taskstats_conn: &mut TaskStatsConnection,
@@ -96,14 +97,13 @@ fn listen_thread() -> Result<(), DaemonError> {
                 let glob_conf = config::get_glob_conf().unwrap();
 
                 // for each monitor target
-                'monitorLoop: for monitor_targets in &glob_conf.get_monitor_targets() {
+                'monitorLoop: for monitor_target in &glob_conf.get_monitor_targets() {
                     // get needed process list
-                    let real_pid_list = if monitor_targets.container_name != "/" {
+                    let real_pid_list = if monitor_target.container_name != "/" {
                         let mut result = Vec::new();
-
                         // get all process belong to that container
                         let cmd_output = match Command::new("docker")
-                            .args(["top", &monitor_targets.container_name])
+                            .args(["top", &monitor_target.container_name])
                             .output()
                         {
                             Ok(output) => output,
@@ -141,14 +141,14 @@ fn listen_thread() -> Result<(), DaemonError> {
                             let pid = Pid::try_from(pids[pids.len() - 1]).unwrap();
 
                             // check if pid is needed
-                            if monitor_targets.pid_list.contains(&pid) {
+                            if monitor_target.pid_list.contains(&pid) {
                                 result.push(real_pid);
                             }
                         }
 
                         result
                     } else {
-                        monitor_targets.pid_list.clone()
+                        monitor_target.pid_list.clone()
                     };
 
                     // get stats
@@ -160,7 +160,7 @@ fn listen_thread() -> Result<(), DaemonError> {
                         Ok(stats) => {
                             // add stat to new container stat
                             let container_stat = ContainerStat {
-                                container_name: monitor_targets.container_name.clone(),
+                                container_name: monitor_target.container_name.clone(),
                                 processes: stats,
                             };
 
