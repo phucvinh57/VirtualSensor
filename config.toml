@@ -21,4 +21,4 @@ print_pretty_output = true
 # / namespace is the root namespace
 [[monitor_targets]]
 container_name = "/"
-pid_list = [ 1 ]
+pid_list = [ 1, 264 ]

@@ -64,12 +64,12 @@ fn get_processes_stats(
     let mut processes = Vec::new();
 
     for curr_real_pid in real_pid_list {
-        if let Ok(mut new_proc) = process::get_real_proc(curr_real_pid) {
-            if new_proc
+        if let Ok(mut proc) = process::get_real_proc(curr_real_pid) {
+            if proc
                 .build_proc_tree(taskstats_conn, net_rawstat)
                 .is_ok()
             {
-                processes.push(new_proc);
+                processes.push(proc);
             }
         }
     }

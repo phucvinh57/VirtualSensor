@@ -842,7 +842,7 @@ impl Process {
     pub fn build_proc_tree(
         &mut self,
         taskstats_conn: &mut TaskStatsConnection,
-        net_rawstat: &mut NetworkRawStat,
+        net_rawstat: &mut NetworkRawStat
     ) -> Result<ProcessStat, ProcessError> {
         // get global config
         let glob_conf = config::get_glob_conf().unwrap();
@@ -1260,7 +1260,7 @@ impl TryFrom<&str> for GidMap {
     }
 }
 
-/// Make a process from realPid, with all data pulled from running system
+// Make a process from realPid, with all data pulled from running system
 pub fn get_real_proc(real_pid: &Pid) -> Result<Process, ProcessError> {
     let status_file_content = fs::read_to_string(format!("/proc/{}/status", real_pid))?;
     let lines: Vec<&str> = status_file_content.lines().collect();
