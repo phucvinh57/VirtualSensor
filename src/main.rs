@@ -17,6 +17,7 @@ use std::{env, fmt, io};
 #[macro_use]
 extern crate lazy_static;
 
+use process::iterate_proc_tree;
 use serde::Serialize;
 use serde_json;
 
@@ -58,23 +59,18 @@ impl TotalStat {
 // TODO
 fn get_processes_stats(
     real_pid_list: &[Pid],
-    taskstats_conn: &mut TaskStatsConnection,
+    taskstats_conn: &TaskStatsConnection,
     net_rawstat: &mut NetworkRawStat,
 ) -> Result<Vec<process::Process>, DaemonError> {
-    let mut processes = Vec::new();
+    let mut processes_list = Vec::new();
 
     for curr_real_pid in real_pid_list {
-        if let Ok(mut proc) = process::get_real_proc(curr_real_pid) {
-            if proc
-                .build_proc_tree(taskstats_conn, net_rawstat)
-                .is_ok()
-            {
-                processes.push(proc);
-            }
+        if let Ok(proc) = process::get_real_proc(curr_real_pid, taskstats_conn, net_rawstat) {
+            iterate_proc_tree(&proc, &mut processes_list, taskstats_conn, net_rawstat);
         }
     }
 
-    Ok(processes)
+    Ok(processes_list)
 }
 
 fn listen_thread() -> Result<(), DaemonError> {
@@ -157,11 +153,11 @@ fn listen_thread() -> Result<(), DaemonError> {
                         &mut taskstats_conn,
                         &mut total_stat.network_rawstat,
                     ) {
-                        Ok(stats) => {
+                        Ok(processes) => {
                             // add stat to new container stat
                             let container_stat = ContainerStat {
                                 container_name: monitor_target.container_name.clone(),
-                                processes: stats,
+                                processes,
                             };
 
                             total_stat.container_stats.push(container_stat);

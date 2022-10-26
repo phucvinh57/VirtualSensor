@@ -7,8 +7,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::common::{CommonError, Count, DataCount, Gid, Inode, TimeCount, Timestamp, Uid};
 use crate::config;
-use crate::taskstat::{TaskStatsConnection, TaskStatsError};
 use crate::network_stat::{Connection, NetworkRawStat, UniConnection, UniConnectionStat};
+use crate::taskstat::{TaskStatsConnection, TaskStatsError};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 pub struct Pid(u128);
@@ -267,9 +267,7 @@ impl Add<Self> for InterfaceStat {
             if let Some(conn_stat) = result.conn_stats.get_mut(&other_conn) {
                 *conn_stat += other_conn_stat;
             } else {
-                result
-                    .conn_stats
-                    .insert(other_conn, other_conn_stat);
+                result.conn_stats.insert(other_conn, other_conn_stat);
             }
         }
 
@@ -298,8 +296,7 @@ impl AddAssign<Self> for InterfaceStat {
             if let Some(conn_stat) = self.conn_stats.get_mut(&other_conn) {
                 *conn_stat += other_conn_stat;
             } else {
-                self.conn_stats
-                    .insert(other_conn, other_conn_stat);
+                self.conn_stats.insert(other_conn, other_conn_stat);
             }
         }
     }
@@ -364,10 +361,7 @@ impl NetworkStat {
         }
 
         // insert the stat to interface stat
-        self.istats
-            .get_mut(iname)
-            .unwrap()
-            .add_conn_stat(conn_stat);
+        self.istats.get_mut(iname).unwrap().add_conn_stat(conn_stat);
     }
 }
 
@@ -393,9 +387,7 @@ impl Add<Self> for NetworkStat {
             if let Some(istat) = result.istats.get_mut(&other_iname) {
                 *istat += other_istat;
             } else {
-                result
-                    .istats
-                    .insert(other_iname, other_istat);
+                result.istats.insert(other_iname, other_istat);
             }
         }
 
@@ -419,8 +411,7 @@ impl AddAssign<Self> for NetworkStat {
             if let Some(istat) = self.istats.get_mut(&other_iname) {
                 *istat += other_istat;
             } else {
-                self.istats
-                    .insert(other_iname, other_istat);
+                self.istats.insert(other_iname, other_istat);
             }
         }
     }
@@ -666,13 +657,14 @@ impl Thread {
     // update this thread stat, and return a copy of it
     pub fn get_stat(
         &mut self,
-        taskstats_conn: &mut TaskStatsConnection,
+        taskstats_conn: &TaskStatsConnection,
     ) -> Result<ThreadStat, ProcessError> {
         let thread_taskstats = taskstats_conn.get_thread_taskstats(self.real_tid)?;
 
         self.stat.total_system_cpu_time = thread_taskstats.system_cpu_time;
         self.stat.total_user_cpu_time = thread_taskstats.user_cpu_time;
-        self.stat.total_cpu_time = thread_taskstats.system_cpu_time + thread_taskstats.user_cpu_time;
+        self.stat.total_cpu_time =
+            thread_taskstats.system_cpu_time + thread_taskstats.user_cpu_time;
 
         self.stat.total_io_read = thread_taskstats.io_read;
         self.stat.total_io_write = thread_taskstats.io_write;
@@ -721,17 +713,10 @@ pub struct Process {
     // accumulated thread stat of all threads of this process
     stat: ProcessStat,
 
-    // accumulate process stat of all child process
-    accumulated_childs_stat: ProcessStat,
-
-    // stats + accumulatedChildsStats
-    accumulated_stat: ProcessStat,
-
     // list of all threads
     threads: Vec<Thread>,
 
-    // list of all child process
-    childs: Vec<Process>,
+    child_real_pid_list: Vec<Pid>,
 }
 
 #[allow(unused)]
@@ -791,10 +776,8 @@ impl Process {
             command,
 
             stat: ProcessStat::new(),
-            accumulated_childs_stat: ProcessStat::new(),
-            accumulated_stat: ProcessStat::new(),
             threads: Vec::new(),
-            childs: Vec::new(),
+            child_real_pid_list: Vec::new(),
         }
     }
 
@@ -836,197 +819,6 @@ impl Process {
     }
     pub fn get_real_fs_gid(&self) -> Gid {
         self.real_fs_gid
-    }
-
-    /// Build process tree, include all threads and childs
-    pub fn build_proc_tree(
-        &mut self,
-        taskstats_conn: &mut TaskStatsConnection,
-        net_rawstat: &mut NetworkRawStat
-    ) -> Result<ProcessStat, ProcessError> {
-        // get global config
-        let glob_conf = config::get_glob_conf().unwrap();
-
-        // get memory usage
-        let mem_data = fs::read_to_string(format!("/proc/{}/status", self.real_pid))?;
-        let mem_data: Vec<&str> = mem_data.lines().collect();
-
-        let (vss, rss, swap) = if glob_conf.is_old_kernel() {
-            (
-                mem_data[13].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
-                mem_data[17].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
-                mem_data[26].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
-            )
-        } else {
-            (
-                mem_data[17].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
-                mem_data[21].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
-                mem_data[30].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
-            )
-        };
-
-        self.stat.total_vss += DataCount::from_kb(vss);
-        self.stat.total_rss += DataCount::from_kb(rss);
-        self.stat.total_swap += DataCount::from_kb(swap);
-
-        // build network stat
-
-        // get socket inode list
-        let mut inodes = Vec::new();
-
-        let fd_dir = match fs::read_dir(format!("/proc/{}/fd", self.real_pid)) {
-            Ok(fd) => fd,
-            Err(err) => return Err(ProcessError::IOErr(err)),
-        };
-
-        for fd in fd_dir {
-            let fd = fd.unwrap();
-
-            if let Ok(link) = fd.path().read_link() {
-                let link = link.as_path().to_str().unwrap();
-                if link.len() > 9 && &link[0..8] == "socket:[" {
-                    inodes.push(Inode::try_from(&link[8..link.len() - 1]).unwrap());
-                }
-            }
-        }
-
-        // match inode to uniconnection stat
-        for inode in inodes {
-            if let Some(connection) = net_rawstat.lookup_connection(&inode) {
-                let connection = connection.clone();
-
-                if let Some(iname) = net_rawstat.lookup_interface_name(&connection) {
-                    let iname = iname.to_string();
-
-                    let uni_conn = UniConnection::new(
-                        connection.get_local_addr(),
-                        connection.get_local_port(),
-                        connection.get_remote_addr(),
-                        connection.get_remote_port(),
-                        connection.get_conn_type(),
-                    );
-
-                    let reverse_uni_conn = UniConnection::new(
-                        connection.get_remote_addr(),
-                        connection.get_remote_port(),
-                        connection.get_local_addr(),
-                        connection.get_local_port(),
-                        connection.get_conn_type(),
-                    );
-
-                    // get interface raw stats
-                    if let Some(irawstat) =
-                        net_rawstat.get_irawstat(&iname)
-                    {
-                        // get 2 uniconnection stats from interface raw stat
-                        let uni_conn_stat = irawstat
-                            .get_uni_conn_stat(&uni_conn)
-                            .unwrap_or(&UniConnectionStat::new(uni_conn))
-                            .clone();
-
-                        let reverse_uni_conn_stat = irawstat
-                            .get_uni_conn_stat(&reverse_uni_conn)
-                            .unwrap_or(&UniConnectionStat::new(reverse_uni_conn))
-                            .clone();
-
-                        // make new connection stat
-                        let mut conn_stat = ConnectionStat::new(connection.clone());
-
-                        conn_stat.pack_sent = uni_conn_stat.get_packet_count();
-                        conn_stat.pack_recv = reverse_uni_conn_stat.get_packet_count();
-
-                        conn_stat.total_data_sent = uni_conn_stat.get_total_data_count();
-                        conn_stat.total_data_recv = reverse_uni_conn_stat.get_total_data_count();
-
-                        conn_stat.real_data_sent = uni_conn_stat.get_real_data_count();
-                        conn_stat.real_data_recv = reverse_uni_conn_stat.get_real_data_count();
-
-                        // add new connection stat to interface stat
-                        self.stat
-                            .netstat
-                            .add_conn_stat(&iname, conn_stat);
-                    }
-                }
-            }
-        }
-
-        // update threads list
-        let task_dir = match fs::read_dir(format!("/proc/{}/task", self.real_pid)) {
-            Ok(dir) => dir,
-            Err(err) => return Err(ProcessError::IOErr(err)),
-        };
-
-        for thread_dir in task_dir {
-            let thread_dir = thread_dir.unwrap();
-
-            if thread_dir.file_type().unwrap().is_dir() {
-                if let Ok(real_tid) = Tid::try_from(thread_dir.file_name().to_str().unwrap()) {
-                    // get tid
-                    let thread_status_file_content = match fs::read_to_string(format!(
-                        "{}/status",
-                        thread_dir.path().to_str().unwrap()
-                    )) {
-                        Ok(content) => content,
-                        Err(_) => continue,
-                    };
-
-                    let thread_lines: Vec<&str> = thread_status_file_content.lines().collect();
-
-                    // get tid
-                    let tid = if glob_conf.is_old_kernel() {
-                        Tid::new(0)
-                    } else {
-                        let tids = thread_lines[13].split_whitespace().collect::<Vec<&str>>();
-                        Tid::try_from(tids[tids.len() - 1]).unwrap()
-                    };
-
-                    let mut new_thread = Thread::new(tid, self.pid, real_tid, self.real_pid);
-
-                    if let Ok(thread_stat) = new_thread.get_stat(taskstats_conn) {
-                        self.stat += thread_stat;
-
-                        // add new thread
-                        self.threads.push(new_thread);
-                    }
-                }
-            }
-        }
-
-        // from here can fail and still return the stats
-        self.accumulated_stat = self.stat.clone();
-
-        // update child list
-        let children_list = match fs::read_to_string(format!(
-            "/proc/{}/task/{}/children",
-            self.real_pid, self.real_pid
-        )) {
-            Ok(list) => list,
-            Err(_) => return Ok(self.accumulated_stat.clone()),
-        };
-
-        for child_real_pid in children_list.split_terminator(" ") {
-            let mut child_proc = match get_real_proc(&Pid::try_from(child_real_pid).unwrap()) {
-                Ok(child) => child,
-                Err(_) => return Ok(self.accumulated_stat.clone()),
-            };
-
-            // build the child thread and process list
-
-            let child_stat = match child_proc.build_proc_tree(taskstats_conn, net_rawstat)
-            {
-                Ok(stat) => stat,
-                Err(_) => return Ok(self.accumulated_stat.clone()),
-            };
-
-            self.accumulated_childs_stat += child_stat;
-
-            // add the child to this process child list
-            self.childs.push(child_proc);
-        }
-
-        self.accumulated_stat = self.stat.clone() + self.accumulated_childs_stat.clone();
-
-        Ok(self.accumulated_stat.clone())
     }
 }
 
@@ -1261,7 +1053,11 @@ impl TryFrom<&str> for GidMap {
 }
 
 // Make a process from realPid, with all data pulled from running system
-pub fn get_real_proc(real_pid: &Pid) -> Result<Process, ProcessError> {
+pub fn get_real_proc(
+    real_pid: &Pid,
+    taskstats_conn: &TaskStatsConnection,
+    net_rawstat: &mut NetworkRawStat,
+) -> Result<Process, ProcessError> {
     let status_file_content = fs::read_to_string(format!("/proc/{}/status", real_pid))?;
     let lines: Vec<&str> = status_file_content.lines().collect();
 
@@ -1340,7 +1136,7 @@ pub fn get_real_proc(real_pid: &Pid) -> Result<Process, ProcessError> {
     // get command
     let command = fs::read_to_string(format!("/proc/{}/comm", real_pid))?;
 
-    Ok(Process::new(
+    let mut proc = Process::new(
         pid,
         parent_pid,
         uid,
@@ -1363,7 +1159,185 @@ pub fn get_real_proc(real_pid: &Pid) -> Result<Process, ProcessError> {
         real_fs_gid,
         exec_path,
         command,
-    ))
+    );
+
+    // get memory usage
+    let mem_data = fs::read_to_string(format!("/proc/{}/status", proc.real_pid))?;
+    let mem_data: Vec<&str> = mem_data.lines().collect();
+
+    let (vss, rss, swap) = if glob_conf.is_old_kernel() {
+        (
+            mem_data[13].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+            mem_data[17].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+            mem_data[26].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+        )
+    } else {
+        (
+            mem_data[17].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+            mem_data[21].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+            mem_data[30].split_whitespace().collect::<Vec<&str>>()[1].parse::<usize>()?,
+        )
+    };
+    proc.stat.total_vss += DataCount::from_kb(vss);
+    proc.stat.total_rss += DataCount::from_kb(rss);
+    proc.stat.total_swap += DataCount::from_kb(swap);
+
+    // build network stat
+
+    // get socket inode list
+    let mut inodes = Vec::new();
+
+    let fd_dir = match fs::read_dir(format!("/proc/{}/fd", proc.real_pid)) {
+        Ok(fd) => fd,
+        Err(err) => return Err(ProcessError::IOErr(err)),
+    };
+
+    for fd in fd_dir {
+        let fd = fd.unwrap();
+
+        if let Ok(link) = fd.path().read_link() {
+            let link = link.as_path().to_str().unwrap();
+            if link.len() > 9 && &link[0..8] == "socket:[" {
+                inodes.push(Inode::try_from(&link[8..link.len() - 1]).unwrap());
+            }
+        }
+    }
+
+    // match inode to uniconnection stat
+    for inode in inodes {
+        if let Some(connection) = net_rawstat.lookup_connection(&inode) {
+            let connection = connection.clone();
+
+            if let Some(iname) = net_rawstat.lookup_interface_name(&connection) {
+                let iname = iname.to_string();
+
+                let uni_conn = UniConnection::new(
+                    connection.get_local_addr(),
+                    connection.get_local_port(),
+                    connection.get_remote_addr(),
+                    connection.get_remote_port(),
+                    connection.get_conn_type(),
+                );
+
+                let reverse_uni_conn = UniConnection::new(
+                    connection.get_remote_addr(),
+                    connection.get_remote_port(),
+                    connection.get_local_addr(),
+                    connection.get_local_port(),
+                    connection.get_conn_type(),
+                );
+
+                // get interface raw stats
+                if let Some(irawstat) = net_rawstat.get_irawstat(&iname) {
+                    // get 2 uniconnection stats from interface raw stat
+                    let uni_conn_stat = irawstat
+                        .get_uni_conn_stat(&uni_conn)
+                        .unwrap_or(&UniConnectionStat::new(uni_conn))
+                        .clone();
+
+                    let reverse_uni_conn_stat = irawstat
+                        .get_uni_conn_stat(&reverse_uni_conn)
+                        .unwrap_or(&UniConnectionStat::new(reverse_uni_conn))
+                        .clone();
+
+                    // make new connection stat
+                    let mut conn_stat = ConnectionStat::new(connection.clone());
+
+                    conn_stat.pack_sent = uni_conn_stat.get_packet_count();
+                    conn_stat.pack_recv = reverse_uni_conn_stat.get_packet_count();
+
+                    conn_stat.total_data_sent = uni_conn_stat.get_total_data_count();
+                    conn_stat.total_data_recv = reverse_uni_conn_stat.get_total_data_count();
+
+                    conn_stat.real_data_sent = uni_conn_stat.get_real_data_count();
+                    conn_stat.real_data_recv = reverse_uni_conn_stat.get_real_data_count();
+
+                    // add new connection stat to interface stat
+                    proc.stat.netstat.add_conn_stat(&iname, conn_stat);
+                }
+            }
+        }
+    }
+
+    // update threads list
+    let task_dir = match fs::read_dir(format!("/proc/{}/task", proc.real_pid)) {
+        Ok(dir) => dir,
+        Err(err) => return Err(ProcessError::IOErr(err)),
+    };
+
+    for thread_dir in task_dir {
+        let thread_dir = thread_dir.unwrap();
+
+        if thread_dir.file_type().unwrap().is_dir() {
+            if let Ok(real_tid) = Tid::try_from(thread_dir.file_name().to_str().unwrap()) {
+                // get tid
+                let thread_status_file_content = match fs::read_to_string(format!(
+                    "{}/status",
+                    thread_dir.path().to_str().unwrap()
+                )) {
+                    Ok(content) => content,
+                    Err(_) => continue,
+                };
+
+                let thread_lines: Vec<&str> = thread_status_file_content.lines().collect();
+
+                // get tid
+                let tid = if glob_conf.is_old_kernel() {
+                    Tid::new(0)
+                } else {
+                    let tids = thread_lines[13].split_whitespace().collect::<Vec<&str>>();
+                    Tid::try_from(tids[tids.len() - 1]).unwrap()
+                };
+
+                let mut new_thread = Thread::new(tid, proc.pid, real_tid, proc.real_pid);
+
+                if let Ok(thread_stat) = new_thread.get_stat(taskstats_conn) {
+                    proc.stat += thread_stat;
+
+                    // add new thread
+                    proc.threads.push(new_thread);
+                }
+            }
+        }
+    }
+    // update child list
+    let children_list = match fs::read_to_string(format!(
+        "/proc/{}/task/{}/children",
+        proc.real_pid, proc.real_pid
+    )) {
+        Ok(list) => list,
+        Err(_) => "".to_owned(),
+    };
+
+    for child_real_pid in children_list.split_terminator(" ") {
+        proc.child_real_pid_list
+            .push(Pid(child_real_pid.parse::<u128>().unwrap()))
+    }
+
+    Ok(proc)
+}
+
+pub fn iterate_proc_tree(
+    root_proc: &Process,
+    processes_list: &mut Vec<Process>,
+    taskstats_conn: &TaskStatsConnection,
+    net_rawstat: &mut NetworkRawStat,
+) {
+    let mut procs_stack: Vec<Process> = Vec::new();
+    procs_stack.push(root_proc.clone());
+
+    let mut temp: Process;
+
+    while !procs_stack.is_empty() {
+        temp = procs_stack.pop().unwrap();
+        processes_list.push(temp.clone());
+
+        for child_real_pid in &temp.child_real_pid_list {
+            if let Ok(child_proc) = get_real_proc(child_real_pid, taskstats_conn, net_rawstat) {
+                procs_stack.push(child_proc)
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
