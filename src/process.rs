@@ -1330,6 +1330,9 @@ pub fn iterate_proc_tree(
 
     while !procs_stack.is_empty() {
         temp = procs_stack.pop().unwrap();
+
+        // TODO: instead of push to list, using thread & shared data
+        // Push data of a process here
         processes_list.push(temp.clone());
 
         for child_real_pid in &temp.child_real_pid_list {
