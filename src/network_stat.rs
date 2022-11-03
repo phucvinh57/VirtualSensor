@@ -204,10 +204,7 @@ impl InterfaceRawStat {
         }
     }
 
-    pub fn get_uni_conn_stat(
-        &mut self,
-        uni_conn: &UniConnection,
-    ) -> Option<&UniConnectionStat> {
+    pub fn get_uni_conn_stat(&mut self, uni_conn: &UniConnection) -> Option<&UniConnectionStat> {
         self.uni_conn_stats.get_mut(uni_conn).map(|x| {
             x.mark_as_used();
             &*x
@@ -236,7 +233,7 @@ pub struct NetworkRawStat {
     iname_lookup_table: HashMap<Connection, String>,
 
     #[serde(serialize_with = "get_network_rawstat_uni_connection_stats_serialize")]
-    irawstats: HashMap<String, InterfaceRawStat>,
+    iterface_rawstats: HashMap<String, InterfaceRawStat>,
 }
 
 impl NetworkRawStat {
@@ -244,7 +241,7 @@ impl NetworkRawStat {
         Self {
             conn_lookup_table: HashMap::new(),
             iname_lookup_table: HashMap::new(),
-            irawstats: HashMap::new(),
+            iterface_rawstats: HashMap::new(),
         }
     }
 
@@ -261,13 +258,13 @@ impl NetworkRawStat {
     }
 
     pub fn get_irawstat(&mut self, iname: &str) -> Option<&mut InterfaceRawStat> {
-        self.irawstats
+        self.iterface_rawstats
             .get_mut(iname)
             .and_then(|irawstat| Some(irawstat))
     }
 
     pub fn remove_unused_uni_connection_stats(&mut self) {
-        for (_, irawstat) in &mut self.irawstats {
+        for (_, irawstat) in &mut self.iterface_rawstats {
             irawstat.remove_used_uni_conn_stats();
         }
     }
@@ -397,7 +394,9 @@ fn parse_ipv6_packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError>
                 next_header_type = tmp[0];
                 curr_idx += tmp[1] as usize;
             }
-            header_type => return Err(NetworkStatError::Ipv6UnknownOptionalHeaderType(header_type)),
+            header_type => {
+                return Err(NetworkStatError::Ipv6UnknownOptionalHeaderType(header_type))
+            }
         }
     }
 
@@ -429,9 +428,7 @@ fn parse_ipv6_packet(data: &[u8]) -> Result<UniConnectionStat, NetworkStatError>
 
         packet_count: Count::new(1),
         total_data_count: DataCount::from_byte(0),
-        real_data_count: DataCount::from_byte(
-            payload_length - (curr_idx - IPV6_FIXED_HEADER_SIZE),
-        ),
+        real_data_count: DataCount::from_byte(payload_length - (curr_idx - IPV6_FIXED_HEADER_SIZE)),
 
         is_used: false,
     })
@@ -761,13 +758,11 @@ fn control_thread(
                         mutex_lock.device.desc.clone().unwrap_or(String::new()),
                     );
 
-                    irawstat.uni_conn_stats = mutex_lock
-                        .uni_conn_stats
-                        .take()
-                        .unwrap_or(HashMap::new());
+                    irawstat.uni_conn_stats =
+                        mutex_lock.uni_conn_stats.take().unwrap_or(HashMap::new());
 
                     network_raw_stat
-                        .irawstats
+                        .iterface_rawstats
                         .insert(iname.clone(), irawstat);
                 }
 
@@ -919,7 +914,9 @@ impl fmt::Display for NetworkStatError {
             Self::ParseIntErr(error) => String::from(format!("Parse integer error: {}", error)),
 
             Self::PcapErr(error) => String::from(format!("Pcap error: {}", error)),
-            Self::UnknownVLANTag(vlan_tag) => String::from(format!("Unknown vlan tag: {}", vlan_tag)),
+            Self::UnknownVLANTag(vlan_tag) => {
+                String::from(format!("Unknown vlan tag: {}", vlan_tag))
+            }
             Self::UnknownProtocol(protocol) => {
                 String::from(format!("Unknown protocol: {}", protocol))
             }

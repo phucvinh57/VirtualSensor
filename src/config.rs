@@ -36,7 +36,6 @@ impl DaemonConfig {
     pub fn is_old_kernel(&self) -> bool {
         self.old_kernel
     }
-   
     pub fn get_capture_size_limit(&self) -> usize {
         self.capture_size_limit
     }

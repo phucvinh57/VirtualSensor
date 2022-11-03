@@ -4,6 +4,8 @@ mod netlink;
 mod network_stat;
 mod process;
 mod taskstat;
+use serde::Serialize;
+use serde_json;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::{task, time};
 
@@ -17,8 +19,6 @@ use std::{env, fmt, io};
 extern crate lazy_static;
 
 use process::iterate_proc_tree;
-use serde::Serialize;
-use serde_json;
 
 use crate::config::ConfigError;
 use crate::network_stat::{NetworkRawStat, NetworkStatError};
@@ -44,7 +44,7 @@ impl ContainerStat {
 pub struct TotalStat {
     container_stats: Vec<ContainerStat>,
     network_rawstat: NetworkRawStat,
-    timestamp: Duration,
+    unix_timestamp: u64, // in seconds
 }
 
 impl TotalStat {
@@ -57,7 +57,7 @@ impl TotalStat {
         Self {
             container_stats: Vec::new(),
             network_rawstat: NetworkRawStat::new(),
-            timestamp,
+            unix_timestamp: timestamp.as_secs(),
         }
     }
 }
@@ -176,17 +176,18 @@ async fn read_monitored_data() -> Result<(), DaemonError> {
     // return result
     if config::get_glob_conf().unwrap().is_print_pretty_output() {
         let _ = fs::write(
-            "test.json",
+            "result.json",
             serde_json::to_string_pretty(&total_stat)
                 .unwrap()
                 .as_bytes(),
         );
     } else {
         let _ = fs::write(
-            "test.json",
+            "result.json",
             serde_json::to_string(&total_stat).unwrap().as_bytes(),
         );
     }
+    println!("Sent to kafka !");
     Ok(())
 }
 
@@ -206,9 +207,8 @@ async fn main() -> Result<(), DaemonError> {
     let glob_conf = config::get_glob_conf().unwrap();
 
     let forever = task::spawn(async move {
-        let mut interval = time::interval(Duration::from_secs(
-            glob_conf.get_publish_msg_interval(),
-        ));
+        let mut interval =
+            time::interval(Duration::from_secs(glob_conf.get_publish_msg_interval()));
 
         loop {
             interval.tick().await;
