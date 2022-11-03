@@ -10,10 +10,7 @@ use tokio::{task, time};
 use std::any::Any;
 use std::convert::TryFrom;
 use std::fs;
-use std::io::Write;
-use std::net::TcpListener;
 use std::process::Command;
-use std::thread;
 use std::{env, fmt, io};
 
 #[macro_use]
@@ -60,7 +57,7 @@ impl TotalStat {
         Self {
             container_stats: Vec::new(),
             network_rawstat: NetworkRawStat::new(),
-            timestamp
+            timestamp,
         }
     }
 }
@@ -82,126 +79,119 @@ fn get_processes_stats(
     Ok(processes_list)
 }
 
-fn listen_thread() -> Result<(), DaemonError> {
+async fn read_monitored_data() -> Result<(), DaemonError> {
     // create new taskstat connection
     let mut taskstats_conn = TaskStatsConnection::new()?;
 
-    // create socket
-    let listener = TcpListener::bind(&config::get_glob_conf()?.get_listen_addr())?;
-
     // listen for connection
-    loop {
-        match listener.accept() {
-            Ok((mut stream, mut _peer_addr)) => {
-                let mut total_stat = TotalStat::new();
 
-                // get network raw stat
-                total_stat.network_rawstat = network_stat::get_network_rawstat()?;
+    let mut total_stat = TotalStat::new();
 
-                // get global config
-                let glob_conf = config::get_glob_conf().unwrap();
+    // get network raw stat
+    total_stat.network_rawstat = network_stat::get_network_rawstat()?;
 
-                // for each monitor target
-                'monitorLoop: for monitor_target in &glob_conf.get_monitor_targets() {
-                    // get needed process list
-                    let real_pid_list = if monitor_target.container_name != "/" {
-                        let mut result = Vec::new();
-                        // get all process belong to that container
-                        let cmd_output = match Command::new("docker")
-                            .args(["top", &monitor_target.container_name])
-                            .output()
-                        {
-                            Ok(output) => output,
-                            Err(_) => continue,
-                        };
+    // get global config
+    let glob_conf = config::get_glob_conf().unwrap();
 
-                        let lines: Vec<&str> = std::str::from_utf8(&cmd_output.stdout)
-                            .unwrap()
-                            .lines()
-                            .skip(1)
-                            .collect::<Vec<&str>>();
+    // for each monitor target
+    'monitorLoop: for monitor_target in &glob_conf.get_monitor_targets() {
+        // get needed process list
+        let real_pid_list = if monitor_target.container_name != "/" {
+            let mut result = Vec::new();
+            // get all process belong to that container
+            let cmd_output = match Command::new("docker")
+                .args(["top", &monitor_target.container_name])
+                .output()
+            {
+                Ok(output) => output,
+                Err(_) => continue,
+            };
 
-                        for line in lines {
-                            // get that process pid
-                            let real_pid = Pid::new(
-                                line.split_whitespace().collect::<Vec<&str>>()[1].parse()?,
-                            );
+            let lines: Vec<&str> = std::str::from_utf8(&cmd_output.stdout)
+                .unwrap()
+                .lines()
+                .skip(1)
+                .collect::<Vec<&str>>();
 
-                            if glob_conf.is_old_kernel() {
-                                result.push(real_pid);
-                                continue;
-                            }
+            for line in lines {
+                // get that process pid
+                let real_pid = Pid::new(line.split_whitespace().collect::<Vec<&str>>()[1].parse()?);
 
-                            // get pid inside namespace
-                            let file_status_content =
-                                match fs::read_to_string(format!("/proc/{}/status", real_pid)) {
-                                    Ok(content) => content,
-                                    Err(_) => continue 'monitorLoop,
-                                };
+                if glob_conf.is_old_kernel() {
+                    result.push(real_pid);
+                    continue;
+                }
 
-                            let content_lines: Vec<&str> = file_status_content.lines().collect();
-
-                            // get pid
-                            let pids = content_lines[12].split_whitespace().collect::<Vec<&str>>();
-                            let pid = Pid::try_from(pids[pids.len() - 1]).unwrap();
-
-                            // check if pid is needed
-                            if monitor_target.pid_list.contains(&pid) {
-                                result.push(real_pid);
-                            }
-                        }
-
-                        result
-                    } else {
-                        monitor_target.pid_list.clone()
+                // get pid inside namespace
+                let file_status_content =
+                    match fs::read_to_string(format!("/proc/{}/status", real_pid)) {
+                        Ok(content) => content,
+                        Err(_) => continue 'monitorLoop,
                     };
 
-                    // get stats
-                    match get_processes_stats(
-                        &real_pid_list,
-                        &mut taskstats_conn,
-                        &mut total_stat.network_rawstat,
-                    ) {
-                        Ok(processes) => {
-                            // add stat to new container stat
-                            let container_stat = ContainerStat {
-                                container_name: monitor_target.container_name.clone(),
-                                processes,
-                            };
+                let content_lines: Vec<&str> = file_status_content.lines().collect();
 
-                            total_stat.container_stats.push(container_stat);
-                        }
-                        Err(err) => {
-                            println!("error: {}", err);
-                            continue;
-                        }
-                    }
-                }
+                // get pid
+                let pids = content_lines[12].split_whitespace().collect::<Vec<&str>>();
+                let pid = Pid::try_from(pids[pids.len() - 1]).unwrap();
 
-                // clean up network raw stat
-                total_stat
-                    .network_rawstat
-                    .remove_unused_uni_connection_stats();
-
-                // return result
-                if config::get_glob_conf().unwrap().is_print_pretty_output() {
-                    let _ = stream.write(
-                        serde_json::to_string_pretty(&total_stat)
-                            .unwrap()
-                            .as_bytes(),
-                    );
-                } else {
-                    let _ = stream.write(serde_json::to_string(&total_stat).unwrap().as_bytes());
+                // check if pid is needed
+                if monitor_target.pid_list.contains(&pid) {
+                    result.push(real_pid);
                 }
             }
+
+            result
+        } else {
+            monitor_target.pid_list.clone()
+        };
+
+        // get stats
+        match get_processes_stats(
+            &real_pid_list,
+            &mut taskstats_conn,
+            &mut total_stat.network_rawstat,
+        ) {
+            Ok(processes) => {
+                // add stat to new container stat
+                let container_stat = ContainerStat {
+                    container_name: monitor_target.container_name.clone(),
+                    processes,
+                };
+
+                total_stat.container_stats.push(container_stat);
+            }
             Err(err) => {
-                println!("Network err: {}", err);
+                println!("error: {}", err);
+                continue;
             }
         }
     }
+
+    // clean up network raw stat
+    total_stat
+        .network_rawstat
+        .remove_unused_uni_connection_stats();
+
+    // return result
+    if config::get_glob_conf().unwrap().is_print_pretty_output() {
+        let _ = fs::write(
+            "test.json",
+            serde_json::to_string_pretty(&total_stat)
+                .unwrap()
+                .as_bytes(),
+        );
+    } else {
+        let _ = fs::write(
+            "test.json",
+            serde_json::to_string(&total_stat).unwrap().as_bytes(),
+        );
+    }
+    Ok(())
 }
 
-fn main() -> Result<(), DaemonError> {
+#[tokio::main]
+async fn main() -> Result<(), DaemonError> {
     // init config
     if env::args().len() != 2 {
         println!("Usage: ./daemon [config path]");
@@ -213,24 +203,22 @@ fn main() -> Result<(), DaemonError> {
     // init network capture
     network_stat::init_network_stat_capture()?;
 
-    // let forever = task::spawn(async {
-    //     let mut interval = time::interval(Duration::from_millis(10));
+    let glob_conf = config::get_glob_conf().unwrap();
 
-    //     loop {
-    //         interval.tick().await;
-    //         lie().await;
-    //     }
-    // });
-    // init listen thread
-    let listen_thread = thread::spawn(|| listen_thread());
+    let forever = task::spawn(async move {
+        let mut interval = time::interval(Duration::from_secs(
+            glob_conf.get_publish_msg_interval(),
+        ));
 
-    // wait forever
-    match listen_thread.join() {
-        Err(listen_thread_err) => return Err(DaemonError::ListenThreadErr(listen_thread_err)),
-        _ => (),
-    }
+        loop {
+            interval.tick().await;
+            let _ = read_monitored_data().await;
+        }
+    });
 
-    Err(DaemonError::UnimplementedErr)
+    let _ = forever.await;
+
+    Err(DaemonError::UnknownErr)
 }
 
 #[derive(Debug)]
@@ -243,7 +231,7 @@ pub enum DaemonError {
     ProcessErr(ProcessError),
     ListenThreadErr(Box<dyn Any + Send>),
     ParseIntErr(std::num::ParseIntError),
-    UnimplementedErr,
+    UnknownErr,
 }
 
 impl std::error::Error for DaemonError {}
@@ -265,7 +253,7 @@ impl fmt::Display for DaemonError {
                 String::from(format!("Listen thread error: {:?}", listen_thread_err))
             }
             Self::ParseIntErr(error) => String::from(format!("Parse integer error: {}", error)),
-            Self::UnimplementedErr => String::from("This error is not implemented"),
+            Self::UnknownErr => String::from("This error is not implemented"),
         };
 
         write!(f, "{}", result)

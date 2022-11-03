@@ -20,7 +20,6 @@ pub struct MonitorTarget {
 pub struct DaemonConfig {
     old_kernel: bool,
 
-    listen_addr: String,
     capture_size_limit: usize,
     #[serde(deserialize_with = "duration_to_nanosecs")]
     control_command_receive_timeout: Duration,
@@ -28,8 +27,7 @@ pub struct DaemonConfig {
     capture_thread_receive_timeout: Duration,
     print_pretty_output: bool,
     
-    #[serde(deserialize_with = "duration_to_secs")]
-    publish_msg_interval: Duration,
+    publish_msg_interval: u64,
 
     monitor_targets: Vec<MonitorTarget>,
 }
@@ -38,9 +36,7 @@ impl DaemonConfig {
     pub fn is_old_kernel(&self) -> bool {
         self.old_kernel
     }
-    pub fn get_listen_addr(&self) -> String {
-        self.listen_addr.clone()
-    }
+   
     pub fn get_capture_size_limit(&self) -> usize {
         self.capture_size_limit
     }
@@ -56,15 +52,9 @@ impl DaemonConfig {
     pub fn get_monitor_targets(&self) -> Vec<MonitorTarget> {
         self.monitor_targets.clone()
     }
-    pub fn get_publish_msg_interval(&self) -> Duration {
+    pub fn get_publish_msg_interval(&self) -> u64 {
         self.publish_msg_interval
     }
-}
-
-fn duration_to_secs<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Duration, D::Error> {
-    Ok(Duration::from_secs(Deserialize::deserialize(
-        deserializer,
-    )?))
 }
 
 fn duration_to_nanosecs<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Duration, D::Error> {
