@@ -4,6 +4,8 @@ mod netlink;
 mod network_stat;
 mod process;
 mod taskstat;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tokio::{task, time};
 
 use std::any::Any;
 use std::convert::TryFrom;
@@ -45,13 +47,20 @@ impl ContainerStat {
 pub struct TotalStat {
     container_stats: Vec<ContainerStat>,
     network_rawstat: NetworkRawStat,
+    timestamp: Duration,
 }
 
 impl TotalStat {
     pub fn new() -> Self {
+        let start: SystemTime = SystemTime::now();
+        let timestamp: Duration = start
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards");
+
         Self {
             container_stats: Vec::new(),
             network_rawstat: NetworkRawStat::new(),
+            timestamp
         }
     }
 }
@@ -172,7 +181,7 @@ fn listen_thread() -> Result<(), DaemonError> {
                 // clean up network raw stat
                 total_stat
                     .network_rawstat
-                    .remove_used_uni_connection_stats();
+                    .remove_unused_uni_connection_stats();
 
                 // return result
                 if config::get_glob_conf().unwrap().is_print_pretty_output() {
@@ -199,11 +208,19 @@ fn main() -> Result<(), DaemonError> {
         return Err(DaemonError::NoConfigPath);
     }
 
-    config::init_glob_conf(&env::args().nth(1).unwrap())?;
+    config::fetch_glob_conf(&env::args().nth(1).unwrap())?;
 
     // init network capture
     network_stat::init_network_stat_capture()?;
 
+    // let forever = task::spawn(async {
+    //     let mut interval = time::interval(Duration::from_millis(10));
+
+    //     loop {
+    //         interval.tick().await;
+    //         lie().await;
+    //     }
+    // });
     // init listen thread
     let listen_thread = thread::spawn(|| listen_thread());
 

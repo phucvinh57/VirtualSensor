@@ -1083,7 +1083,6 @@ impl TaskStatsResultAttributeAggregatePid {
 }
 
 #[derive(Debug, Clone, Copy)]
-#[allow(unused)]
 pub struct TaskStatsResultAttributeAggregateTgid {
     pid: Pid,
     stats: TaskStatsRaw,

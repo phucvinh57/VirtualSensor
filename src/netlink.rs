@@ -180,7 +180,6 @@ impl NetlinkMessagePayload {
 }
 
 #[derive(Clone, Copy, Debug)]
-#[allow(unused)]
 pub enum NetlinkMessagePayloadType {
     Generic,
     Unimplemented,

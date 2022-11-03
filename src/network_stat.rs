@@ -34,7 +34,6 @@ pub struct UniConnection {
     conn_type: ConnectionType,
 }
 
-#[allow(unused)]
 impl UniConnection {
     pub fn new(
         src_addr: IpAddr,
@@ -50,26 +49,6 @@ impl UniConnection {
             dest_port,
             conn_type,
         }
-    }
-
-    pub fn get_src_addr(&self) -> IpAddr {
-        self.src_addr
-    }
-
-    pub fn get_src_port(&self) -> u16 {
-        self.src_port
-    }
-
-    pub fn get_dest_addr(&self) -> IpAddr {
-        self.dest_addr
-    }
-
-    pub fn get_dest_port(&self) -> u16 {
-        self.dest_port
-    }
-
-    pub fn get_conn_type(&self) -> ConnectionType {
-        self.conn_type
     }
 }
 
@@ -287,7 +266,7 @@ impl NetworkRawStat {
             .and_then(|irawstat| Some(irawstat))
     }
 
-    pub fn remove_used_uni_connection_stats(&mut self) {
+    pub fn remove_unused_uni_connection_stats(&mut self) {
         for (_, irawstat) in &mut self.irawstats {
             irawstat.remove_used_uni_conn_stats();
         }
