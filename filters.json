@@ -1,0 +1,74 @@
+{
+  "process": {
+    "pid": true,
+    "parent_pid": true,
+    "uid": true,
+    "effective_uid": true,
+    "saved_uid": true,
+    "fs_uid": true,
+    "gid": true,
+    "effective_gid": true,
+    "saved_gid": true,
+    "fs_gid": true,
+    "real_pid": true,
+    "real_parent_pid": true,
+    "real_uid": true,
+    "real_effective_uid": true,
+    "real_saved_uid": true,
+    "real_fs_uid": true,
+    "real_gid": true,
+    "real_effective_gid": true,
+    "real_saved_gid": true,
+    "real_fs_gid": true,
+    "exec_path": "/usr/lib/systemd/systemd-journald",
+    "command": "systemd-journal\n",
+    "stat": {
+      "timestamp": true,
+      "total_system_cpu_time": true,
+      "total_user_cpu_time": true,
+      "total_cpu_time": true,
+      "total_rss": true,
+      "total_vss": true,
+      "total_swap": true,
+      "total_io_read": true,
+      "total_io_write": true,
+      "total_block_io_read": true,
+      "total_block_io_write": true,
+      "netstat": {
+        "pack_sent": true,
+        "pack_recv": true,
+        "total_data_sent": true,
+        "total_data_recv": true,
+        "real_data_sent": true,
+        "real_data_recv": true,
+        "interface_stats": []
+      }
+    },
+    "threads": [
+      {
+        "tid": true,
+        "pid": true,
+        "real_tid": true,
+        "real_pid": true,
+        "stat": {
+          "timestamp": true,
+          "total_system_cpu_time": true,
+          "total_user_cpu_time": true,
+          "total_cpu_time": true,
+          "total_io_read": true,
+          "total_io_write": true,
+          "total_block_io_read": true,
+          "total_block_io_write": true
+        }
+      }
+    ],
+    "child_real_pid_list": []
+  },
+  "network_rawstat": {
+    "irawstat": {
+      "iname": "br-9f412ctrue2ed5f",
+      "description": "",
+      "uni_conn_stats": []
+    }
+  }
+}

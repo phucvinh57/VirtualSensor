@@ -198,7 +198,7 @@ pub struct InterfaceStat {
     real_data_recv: DataCount,
 
     // map from Connection to ConnectionStat
-    #[serde(serialize_with = "get_istat_conn_stats_serialize")]
+    #[serde(serialize_with = "get_interface_stat_conn_stats_serialize")]
     conn_stats: HashMap<Connection, ConnectionStat>,
 }
 
@@ -302,7 +302,7 @@ impl AddAssign<Self> for InterfaceStat {
     }
 }
 
-fn get_istat_conn_stats_serialize<S: Serializer>(
+fn get_interface_stat_conn_stats_serialize<S: Serializer>(
     input: &HashMap<Connection, ConnectionStat>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
@@ -324,8 +324,8 @@ pub struct NetworkStat {
     real_data_recv: DataCount,
 
     // map from InterfaceName to InterfaceStat
-    #[serde(serialize_with = "get_netstat_istats_serialize")]
-    istats: HashMap<String, InterfaceStat>,
+    #[serde(serialize_with = "get_netstat_interface_stats_serialize")]
+    interface_stats: HashMap<String, InterfaceStat>,
 }
 
 impl NetworkStat {
@@ -340,7 +340,7 @@ impl NetworkStat {
             real_data_sent: DataCount::from_byte(0),
             real_data_recv: DataCount::from_byte(0),
 
-            istats: HashMap::new(),
+            interface_stats: HashMap::new(),
         }
     }
 
@@ -355,13 +355,13 @@ impl NetworkStat {
         self.real_data_recv += conn_stat.get_real_data_recv();
 
         // create interface stat if not existed yet
-        if !self.istats.contains_key(iname) {
-            self.istats
+        if !self.interface_stats.contains_key(iname) {
+            self.interface_stats
                 .insert(iname.to_string(), InterfaceStat::new(iname));
         }
 
         // insert the stat to interface stat
-        self.istats.get_mut(iname).unwrap().add_conn_stat(conn_stat);
+        self.interface_stats.get_mut(iname).unwrap().add_conn_stat(conn_stat);
     }
 }
 
@@ -381,13 +381,13 @@ impl Add<Self> for NetworkStat {
         result.real_data_recv = self.real_data_recv + other.real_data_recv;
 
         // merge interfaceStats
-        result.istats = self.istats;
+        result.interface_stats = self.interface_stats;
 
-        for (other_iname, other_istat) in other.istats {
-            if let Some(istat) = result.istats.get_mut(&other_iname) {
+        for (other_iname, other_istat) in other.interface_stats {
+            if let Some(istat) = result.interface_stats.get_mut(&other_iname) {
                 *istat += other_istat;
             } else {
-                result.istats.insert(other_iname, other_istat);
+                result.interface_stats.insert(other_iname, other_istat);
             }
         }
 
@@ -407,17 +407,17 @@ impl AddAssign<Self> for NetworkStat {
         self.real_data_recv += other.real_data_recv;
 
         // merge interfaceStats
-        for (other_iname, other_istat) in other.istats {
-            if let Some(istat) = self.istats.get_mut(&other_iname) {
+        for (other_iname, other_istat) in other.interface_stats {
+            if let Some(istat) = self.interface_stats.get_mut(&other_iname) {
                 *istat += other_istat;
             } else {
-                self.istats.insert(other_iname, other_istat);
+                self.interface_stats.insert(other_iname, other_istat);
             }
         }
     }
 }
 
-fn get_netstat_istats_serialize<S: Serializer>(
+fn get_netstat_interface_stats_serialize<S: Serializer>(
     input: &HashMap<String, InterfaceStat>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
@@ -626,7 +626,6 @@ pub struct Thread {
     stat: ThreadStat,
 }
 
-#[allow(unused)]
 impl Thread {
     pub fn new(tid: Tid, pid: Pid, real_tid: Tid, real_pid: Pid) -> Self {
         Self {
@@ -638,20 +637,6 @@ impl Thread {
 
             stat: ThreadStat::new(),
         }
-    }
-
-    pub fn get_tid(&self) -> Tid {
-        self.tid
-    }
-    pub fn get_pid(&self) -> Pid {
-        self.pid
-    }
-
-    pub fn get_real_tid(&self) -> Tid {
-        self.real_tid
-    }
-    pub fn get_real_pid(&self) -> Pid {
-        self.real_pid
     }
 
     // update this thread stat, and return a copy of it
@@ -681,6 +666,10 @@ impl Thread {
 pub struct Process {
     // ids inside namespace
     pid: Pid,
+
+    // #[serde(skip_serializing_if = "Option::is_none")]
+    // parent_pid: Option<Pid>,
+
     parent_pid: Pid,
 
     uid: Uid,
@@ -719,7 +708,6 @@ pub struct Process {
     child_real_pid_list: Vec<Pid>,
 }
 
-#[allow(unused)]
 impl Process {
     pub fn new(
         pid: Pid,
@@ -779,46 +767,6 @@ impl Process {
             threads: Vec::new(),
             child_real_pid_list: Vec::new(),
         }
-    }
-
-    pub fn get_pid(&self) -> Pid {
-        self.pid
-    }
-    pub fn get_parent_pid(&self) -> Pid {
-        self.parent_pid
-    }
-
-    pub fn get_real_pid(&self) -> Pid {
-        self.real_pid
-    }
-    pub fn get_real_parent_pid(&self) -> Pid {
-        self.real_parent_pid
-    }
-
-    pub fn get_real_uid(&self) -> Uid {
-        self.real_uid
-    }
-    pub fn get_real_effective_uid(&self) -> Uid {
-        self.real_effective_uid
-    }
-    pub fn get_real_saved_uid(&self) -> Uid {
-        self.real_saved_uid
-    }
-    pub fn get_real_fs_uid(&self) -> Uid {
-        self.real_fs_uid
-    }
-
-    pub fn get_real_gid(&self) -> Gid {
-        self.real_gid
-    }
-    pub fn get_real_effective_gid(&self) -> Gid {
-        self.real_effective_gid
-    }
-    pub fn get_real_saved_gid(&self) -> Gid {
-        self.real_saved_gid
-    }
-    pub fn get_real_fs_gid(&self) -> Gid {
-        self.real_fs_gid
     }
 }
 
@@ -1330,6 +1278,9 @@ pub fn iterate_proc_tree(
 
     while !procs_stack.is_empty() {
         temp = procs_stack.pop().unwrap();
+
+        // TODO: instead of push to list, using thread & shared data
+        // Push data of a process here
         processes_list.push(temp.clone());
 
         for child_real_pid in &temp.child_real_pid_list {
