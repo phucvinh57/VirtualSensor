@@ -186,7 +186,7 @@ pub struct InterfaceStat {
     iname: String,
 
     // packet count
-    pack_sent: Count,
+    packet_sent: Count,
     packet_recv: Count,
 
     // data count in link layer
@@ -199,7 +199,7 @@ pub struct InterfaceStat {
 
     // map from Connection to ConnectionStat
     #[serde(serialize_with = "get_interface_stat_conn_stats_serialize")]
-    conn_stats: HashMap<Connection, ConnectionStat>,
+    connection_stats: HashMap<Connection, ConnectionStat>,
 }
 
 #[allow(unused)]
@@ -208,7 +208,7 @@ impl InterfaceStat {
         Self {
             iname: String::from(iname),
 
-            pack_sent: Count::new(0),
+            packet_sent: Count::new(0),
             packet_recv: Count::new(0),
 
             total_data_sent: DataCount::from_byte(0),
@@ -217,7 +217,7 @@ impl InterfaceStat {
             real_data_sent: DataCount::from_byte(0),
             real_data_recv: DataCount::from_byte(0),
 
-            conn_stats: HashMap::new(),
+            connection_stats: HashMap::new(),
         }
     }
 
@@ -225,8 +225,8 @@ impl InterfaceStat {
         self.iname.clone()
     }
 
-    pub fn add_conn_stat(&mut self, conn_stat: ConnectionStat) {
-        self.pack_sent += conn_stat.get_pack_sent();
+    pub fn add_connection_stat(&mut self, conn_stat: ConnectionStat) {
+        self.packet_sent += conn_stat.get_pack_sent();
         self.packet_recv += conn_stat.get_pack_recv();
 
         self.total_data_sent += conn_stat.get_total_data_sent();
@@ -235,7 +235,7 @@ impl InterfaceStat {
         self.real_data_sent += conn_stat.get_real_data_sent();
         self.real_data_recv += conn_stat.get_real_data_recv();
 
-        self.conn_stats
+        self.connection_stats
             .insert(conn_stat.get_connection(), conn_stat);
     }
 }
@@ -251,7 +251,7 @@ impl Add<Self> for InterfaceStat {
 
         let mut result = Self::new(&self.iname);
 
-        result.pack_sent = self.pack_sent + other.pack_sent;
+        result.packet_sent = self.packet_sent + other.packet_sent;
         result.packet_recv = self.packet_recv + other.packet_recv;
 
         result.total_data_sent = self.total_data_sent + other.total_data_sent;
@@ -261,13 +261,13 @@ impl Add<Self> for InterfaceStat {
         result.real_data_recv = self.real_data_recv + other.real_data_recv;
 
         // merge connectionStats
-        result.conn_stats = self.conn_stats;
+        result.connection_stats = self.connection_stats;
 
-        for (other_conn, other_conn_stat) in other.conn_stats {
-            if let Some(conn_stat) = result.conn_stats.get_mut(&other_conn) {
+        for (other_conn, other_conn_stat) in other.connection_stats {
+            if let Some(conn_stat) = result.connection_stats.get_mut(&other_conn) {
                 *conn_stat += other_conn_stat;
             } else {
-                result.conn_stats.insert(other_conn, other_conn_stat);
+                result.connection_stats.insert(other_conn, other_conn_stat);
             }
         }
 
@@ -282,7 +282,7 @@ impl AddAssign<Self> for InterfaceStat {
             "Can't add different interface stats!"
         );
 
-        self.pack_sent += other.pack_sent;
+        self.packet_sent += other.packet_sent;
         self.packet_recv += other.packet_recv;
 
         self.total_data_sent += other.total_data_sent;
@@ -292,11 +292,11 @@ impl AddAssign<Self> for InterfaceStat {
         self.real_data_recv += other.real_data_recv;
 
         // merge connectionStats
-        for (other_conn, other_conn_stat) in other.conn_stats {
-            if let Some(conn_stat) = self.conn_stats.get_mut(&other_conn) {
+        for (other_conn, other_conn_stat) in other.connection_stats {
+            if let Some(conn_stat) = self.connection_stats.get_mut(&other_conn) {
                 *conn_stat += other_conn_stat;
             } else {
-                self.conn_stats.insert(other_conn, other_conn_stat);
+                self.connection_stats.insert(other_conn, other_conn_stat);
             }
         }
     }
@@ -344,7 +344,7 @@ impl NetworkStat {
         }
     }
 
-    pub fn add_conn_stat(&mut self, iname: &str, conn_stat: ConnectionStat) {
+    pub fn add_connection_stat(&mut self, iname: &str, conn_stat: ConnectionStat) {
         self.pack_sent += conn_stat.get_pack_sent();
         self.pack_recv += conn_stat.get_pack_recv();
 
@@ -364,7 +364,7 @@ impl NetworkStat {
         self.interface_stats
             .get_mut(iname)
             .unwrap()
-            .add_conn_stat(conn_stat);
+            .add_connection_stat(conn_stat);
     }
 }
 
@@ -669,40 +669,22 @@ impl Thread {
 pub struct Process {
     pid: Pid,        // Must have
     parent_pid: Pid, // Must have
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    uid: Option<Uid>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    effective_uid: Option<Uid>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    saved_uid: Option<Uid>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    fs_uid: Option<Uid>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    gid: Option<Gid>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    effective_gid: Option<Gid>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    saved_gid: Option<Gid>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    fs_gid: Option<Gid>,
+    uid: Uid,
+    effective_uid: Uid,
+    saved_uid: Uid,
+    fs_uid: Uid,
+    gid: Gid,
+    effective_gid: Gid,
+    saved_gid: Gid,
+    fs_gid: Gid,
 
     // ids outside namespace
-    real_pid: Pid, // Must have
+    real_pid: Pid,        // Must have
     real_parent_pid: Pid, // Must have
-
     real_uid: Uid,
     real_effective_uid: Uid,
     real_saved_uid: Uid,
     real_fs_uid: Uid,
-
     real_gid: Gid,
     real_effective_gid: Gid,
     real_saved_gid: Gid,
@@ -724,14 +706,14 @@ impl Process {
     pub fn new(
         pid: Pid,
         parent_pid: Pid,
-        uid: Option<Uid>,
-        effective_uid: Option<Uid>,
-        saved_uid: Option<Uid>,
-        fs_uid: Option<Uid>,
-        gid: Option<Gid>,
-        effective_gid: Option<Gid>,
-        saved_gid: Option<Gid>,
-        fs_gid: Option<Gid>,
+        uid: Uid,
+        effective_uid: Uid,
+        saved_uid: Uid,
+        fs_uid: Uid,
+        gid: Gid,
+        effective_gid: Gid,
+        saved_gid: Gid,
+        fs_gid: Gid,
         real_pid: Pid,
         real_parent_pid: Pid,
         real_uid: Uid,
@@ -1080,20 +1062,16 @@ pub fn get_real_proc(
         GidMap::try_from(fs::read_to_string(format!("/proc/{}/gid_map", real_pid))?.as_str())?;
 
     // map every real id to id
-    let uid = if true {
-        Some(uid_map.map_to_uid(real_uid).unwrap())
-    } else {
-        None
-    };
+    let uid =uid_map.map_to_uid(real_uid).unwrap();
 
-    let effective_uid = uid_map.map_to_uid(real_effective_uid);
-    let saved_uid = uid_map.map_to_uid(real_saved_uid);
-    let fs_uid = uid_map.map_to_uid(real_fs_uid);
+    let effective_uid = uid_map.map_to_uid(real_effective_uid).unwrap();
+    let saved_uid = uid_map.map_to_uid(real_saved_uid).unwrap();
+    let fs_uid = uid_map.map_to_uid(real_fs_uid).unwrap();
 
-    let gid = gid_map.map_to_gid(real_gid);
-    let effective_gid = gid_map.map_to_gid(real_effective_gid);
-    let saved_gid = gid_map.map_to_gid(real_saved_gid);
-    let fs_gid = gid_map.map_to_gid(real_fs_gid);
+    let gid = gid_map.map_to_gid(real_gid).unwrap();
+    let effective_gid = gid_map.map_to_gid(real_effective_gid).unwrap();
+    let saved_gid = gid_map.map_to_gid(real_saved_gid).unwrap();
+    let fs_gid = gid_map.map_to_gid(real_fs_gid).unwrap();
 
     // get execution path
     let exec_path = fs::read_link(format!("/proc/{}/exe", real_pid))?;
@@ -1182,7 +1160,7 @@ pub fn get_real_proc(
                     connection.get_local_port(),
                     connection.get_remote_addr(),
                     connection.get_remote_port(),
-                    connection.get_conn_type(),
+                    connection.get_connection_type(),
                 );
 
                 let reverse_uni_conn = UniConnection::new(
@@ -1190,19 +1168,19 @@ pub fn get_real_proc(
                     connection.get_remote_port(),
                     connection.get_local_addr(),
                     connection.get_local_port(),
-                    connection.get_conn_type(),
+                    connection.get_connection_type(),
                 );
 
                 // get interface raw stats
                 if let Some(irawstat) = net_rawstat.get_irawstat(&iname) {
                     // get 2 uniconnection stats from interface raw stat
                     let uni_conn_stat = irawstat
-                        .get_uni_conn_stat(&uni_conn)
+                        .get_uni_connection_stat(&uni_conn)
                         .unwrap_or(&UniConnectionStat::new(uni_conn))
                         .clone();
 
                     let reverse_uni_conn_stat = irawstat
-                        .get_uni_conn_stat(&reverse_uni_conn)
+                        .get_uni_connection_stat(&reverse_uni_conn)
                         .unwrap_or(&UniConnectionStat::new(reverse_uni_conn))
                         .clone();
 
@@ -1219,7 +1197,7 @@ pub fn get_real_proc(
                     conn_stat.real_data_recv = reverse_uni_conn_stat.get_real_data_count();
 
                     // add new connection stat to interface stat
-                    proc.stat.netstat.add_conn_stat(&iname, conn_stat);
+                    proc.stat.netstat.add_connection_stat(&iname, conn_stat);
                 }
             }
         }

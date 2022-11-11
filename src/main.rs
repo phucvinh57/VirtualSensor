@@ -4,8 +4,8 @@ mod netlink;
 mod network_stat;
 mod process;
 mod taskstat;
+use kafka::producer::{Producer, Record, RequiredAcks};
 use serde::Serialize;
-use serde_json;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::{task, time};
 
@@ -79,7 +79,7 @@ fn get_processes_stats(
     Ok(processes_list)
 }
 
-async fn read_monitored_data() -> Result<(), DaemonError> {
+async fn read_monitored_data(kafka_producer: &mut Producer) -> Result<(), DaemonError> {
     // create new taskstat connection
     let mut taskstats_conn = TaskStatsConnection::new()?;
 
@@ -174,18 +174,21 @@ async fn read_monitored_data() -> Result<(), DaemonError> {
         .remove_unused_uni_connection_stats();
 
     // return result
-    if config::get_glob_conf().unwrap().is_print_pretty_output() {
+    if config::get_glob_conf().unwrap().get_dev_flag() {
         let _ = fs::write(
             "result.json",
             serde_json::to_string_pretty(&total_stat)
                 .unwrap()
                 .as_bytes(),
         );
+        
     } else {
-        let _ = fs::write(
-            "result.json",
-            serde_json::to_string(&total_stat).unwrap().as_bytes(),
-        );
+        kafka_producer
+            .send(&Record::from_value(
+                "monitoring",
+                serde_json::to_string(&total_stat).unwrap().as_bytes(),
+            ))
+            .unwrap();
     }
     println!("Sent to kafka !");
     Ok(())
@@ -205,14 +208,20 @@ async fn main() -> Result<(), DaemonError> {
     network_stat::init_network_stat_capture()?;
 
     let glob_conf = config::get_glob_conf().unwrap();
+    println!("{:?}", glob_conf.get_filter());
 
     let forever = task::spawn(async move {
         let mut interval =
             time::interval(Duration::from_secs(glob_conf.get_publish_msg_interval()));
 
+        let mut kafka_producer = Producer::from_hosts(vec!["localhost:9092".to_owned()])
+            .with_ack_timeout(Duration::from_secs(1))
+            .with_required_acks(RequiredAcks::One)
+            .create()
+            .unwrap();
         loop {
             interval.tick().await;
-            let _ = read_monitored_data().await;
+            let _ = read_monitored_data(&mut kafka_producer).await;
         }
     });
 

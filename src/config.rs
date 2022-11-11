@@ -1,3 +1,5 @@
+pub mod filter;
+
 use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
@@ -6,6 +8,8 @@ use config_file::{ConfigFileError, FromConfigFile};
 use serde::{Deserialize, Deserializer};
 
 use crate::process::Pid;
+
+use filter::Filter;
 
 pub static mut GLOBAL_CONFIG: Option<Arc<DaemonConfig>> = None;
 
@@ -16,7 +20,7 @@ pub struct MonitorTarget {
 }
 
 // TODO: add fields to config struct
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct DaemonConfig {
     old_kernel: bool,
 
@@ -28,9 +32,11 @@ pub struct DaemonConfig {
     #[serde(deserialize_with = "duration_to_nanosecs")]
     capture_thread_receive_timeout: Duration,
 
-    print_pretty_output: bool,
+    dev_flag: bool,
     publish_msg_interval: u64,
     monitor_targets: Vec<MonitorTarget>,
+
+    filter: Filter
 }
 
 impl DaemonConfig {
@@ -46,14 +52,18 @@ impl DaemonConfig {
     pub fn get_capture_thread_receive_timeout(&self) -> Duration {
         self.capture_thread_receive_timeout
     }
-    pub fn is_print_pretty_output(&self) -> bool {
-        self.print_pretty_output
+    pub fn get_dev_flag(&self) -> bool {
+        self.dev_flag
     }
     pub fn get_monitor_targets(&self) -> Vec<MonitorTarget> {
         self.monitor_targets.clone()
     }
     pub fn get_publish_msg_interval(&self) -> u64 {
         self.publish_msg_interval
+    }
+
+    pub fn get_filter(&self) -> Filter {
+        self.filter
     }
 }
 

@@ -94,7 +94,7 @@ impl Connection {
         self.remote_port
     }
 
-    pub fn get_conn_type(&self) -> ConnectionType {
+    pub fn get_connection_type(&self) -> ConnectionType {
         self.conn_type
     }
 }
@@ -192,7 +192,7 @@ pub struct InterfaceRawStat {
     description: String,
 
     #[serde(serialize_with = "get_irawstat_uni_conn_stats_serialize")]
-    uni_conn_stats: HashMap<UniConnection, UniConnectionStat>,
+    uni_connection_stats: HashMap<UniConnection, UniConnectionStat>,
 }
 
 impl InterfaceRawStat {
@@ -200,19 +200,19 @@ impl InterfaceRawStat {
         Self {
             iname,
             description,
-            uni_conn_stats: HashMap::new(),
+            uni_connection_stats: HashMap::new(),
         }
     }
 
-    pub fn get_uni_conn_stat(&mut self, uni_conn: &UniConnection) -> Option<&UniConnectionStat> {
-        self.uni_conn_stats.get_mut(uni_conn).map(|x| {
+    pub fn get_uni_connection_stat(&mut self, uni_conn: &UniConnection) -> Option<&UniConnectionStat> {
+        self.uni_connection_stats.get_mut(uni_conn).map(|x| {
             x.mark_as_used();
             &*x
         })
     }
 
     pub fn remove_used_uni_conn_stats(&mut self) {
-        self.uni_conn_stats
+        self.uni_connection_stats
             .retain(|_uni_conn, uni_conn_stat| !uni_conn_stat.is_used);
     }
 }
@@ -233,7 +233,7 @@ pub struct NetworkRawStat {
     iname_lookup_table: HashMap<Connection, String>,
 
     #[serde(serialize_with = "get_network_rawstat_uni_connection_stats_serialize")]
-    iterface_rawstats: HashMap<String, InterfaceRawStat>,
+    interface_rawstats: HashMap<String, InterfaceRawStat>,
 }
 
 impl NetworkRawStat {
@@ -241,7 +241,7 @@ impl NetworkRawStat {
         Self {
             conn_lookup_table: HashMap::new(),
             iname_lookup_table: HashMap::new(),
-            iterface_rawstats: HashMap::new(),
+            interface_rawstats: HashMap::new(),
         }
     }
 
@@ -258,13 +258,13 @@ impl NetworkRawStat {
     }
 
     pub fn get_irawstat(&mut self, iname: &str) -> Option<&mut InterfaceRawStat> {
-        self.iterface_rawstats
+        self.interface_rawstats
             .get_mut(iname)
             .and_then(|irawstat| Some(irawstat))
     }
 
     pub fn remove_unused_uni_connection_stats(&mut self) {
-        for (_, irawstat) in &mut self.iterface_rawstats {
+        for (_, irawstat) in &mut self.interface_rawstats {
             irawstat.remove_used_uni_conn_stats();
         }
     }
@@ -758,11 +758,11 @@ fn control_thread(
                         mutex_lock.device.desc.clone().unwrap_or(String::new()),
                     );
 
-                    irawstat.uni_conn_stats =
+                    irawstat.uni_connection_stats =
                         mutex_lock.uni_conn_stats.take().unwrap_or(HashMap::new());
 
                     network_raw_stat
-                        .iterface_rawstats
+                        .interface_rawstats
                         .insert(iname.clone(), irawstat);
                 }
 
