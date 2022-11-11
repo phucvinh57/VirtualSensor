@@ -21,14 +21,15 @@ pub struct DaemonConfig {
     old_kernel: bool,
 
     capture_size_limit: usize,
+
     #[serde(deserialize_with = "duration_to_nanosecs")]
     control_command_receive_timeout: Duration,
+
     #[serde(deserialize_with = "duration_to_nanosecs")]
     capture_thread_receive_timeout: Duration,
-    print_pretty_output: bool,
-    
-    publish_msg_interval: u64,
 
+    print_pretty_output: bool,
+    publish_msg_interval: u64,
     monitor_targets: Vec<MonitorTarget>,
 }
 

@@ -361,7 +361,10 @@ impl NetworkStat {
         }
 
         // insert the stat to interface stat
-        self.interface_stats.get_mut(iname).unwrap().add_conn_stat(conn_stat);
+        self.interface_stats
+            .get_mut(iname)
+            .unwrap()
+            .add_conn_stat(conn_stat);
     }
 }
 
@@ -664,27 +667,36 @@ impl Thread {
 // TODO: Add new version of process
 #[derive(Debug, Clone, Serialize)]
 pub struct Process {
-    // ids inside namespace
-    pid: Pid,
+    pid: Pid,        // Must have
+    parent_pid: Pid, // Must have
 
-    // #[serde(skip_serializing_if = "Option::is_none")]
-    // parent_pid: Option<Pid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    uid: Option<Uid>,
 
-    parent_pid: Pid,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    effective_uid: Option<Uid>,
 
-    uid: Uid,
-    effective_uid: Uid,
-    saved_uid: Uid,
-    fs_uid: Uid,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    saved_uid: Option<Uid>,
 
-    gid: Gid,
-    effective_gid: Gid,
-    saved_gid: Gid,
-    fs_gid: Gid,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fs_uid: Option<Uid>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    gid: Option<Gid>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    effective_gid: Option<Gid>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    saved_gid: Option<Gid>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fs_gid: Option<Gid>,
 
     // ids outside namespace
-    real_pid: Pid,
-    real_parent_pid: Pid,
+    real_pid: Pid, // Must have
+    real_parent_pid: Pid, // Must have
 
     real_uid: Uid,
     real_effective_uid: Uid,
@@ -712,14 +724,14 @@ impl Process {
     pub fn new(
         pid: Pid,
         parent_pid: Pid,
-        uid: Uid,
-        effective_uid: Uid,
-        saved_uid: Uid,
-        fs_uid: Uid,
-        gid: Gid,
-        effective_gid: Gid,
-        saved_gid: Gid,
-        fs_gid: Gid,
+        uid: Option<Uid>,
+        effective_uid: Option<Uid>,
+        saved_uid: Option<Uid>,
+        fs_uid: Option<Uid>,
+        gid: Option<Gid>,
+        effective_gid: Option<Gid>,
+        saved_gid: Option<Gid>,
+        fs_gid: Option<Gid>,
         real_pid: Pid,
         real_parent_pid: Pid,
         real_uid: Uid,
@@ -1047,10 +1059,11 @@ pub fn get_real_proc(
     };
 
     // get real uids and gids
-    let real_uids = lines[8].split_whitespace().collect::<Vec<&str>>();
     let real_gids = lines[9].split_whitespace().collect::<Vec<&str>>();
+    let real_uids = lines[8].split_whitespace().collect::<Vec<&str>>();
 
     let real_uid = Uid::try_from(real_uids[1]).unwrap();
+
     let real_effective_uid = Uid::try_from(real_uids[2]).unwrap();
     let real_saved_uid = Uid::try_from(real_uids[3]).unwrap();
     let real_fs_uid = Uid::try_from(real_uids[4]).unwrap();
@@ -1067,15 +1080,20 @@ pub fn get_real_proc(
         GidMap::try_from(fs::read_to_string(format!("/proc/{}/gid_map", real_pid))?.as_str())?;
 
     // map every real id to id
-    let uid = uid_map.map_to_uid(real_uid).unwrap();
-    let effective_uid = uid_map.map_to_uid(real_effective_uid).unwrap();
-    let saved_uid = uid_map.map_to_uid(real_saved_uid).unwrap();
-    let fs_uid = uid_map.map_to_uid(real_fs_uid).unwrap();
+    let uid = if true {
+        Some(uid_map.map_to_uid(real_uid).unwrap())
+    } else {
+        None
+    };
 
-    let gid = gid_map.map_to_gid(real_gid).unwrap();
-    let effective_gid = gid_map.map_to_gid(real_effective_gid).unwrap();
-    let saved_gid = gid_map.map_to_gid(real_saved_gid).unwrap();
-    let fs_gid = gid_map.map_to_gid(real_fs_gid).unwrap();
+    let effective_uid = uid_map.map_to_uid(real_effective_uid);
+    let saved_uid = uid_map.map_to_uid(real_saved_uid);
+    let fs_uid = uid_map.map_to_uid(real_fs_uid);
+
+    let gid = gid_map.map_to_gid(real_gid);
+    let effective_gid = gid_map.map_to_gid(real_effective_gid);
+    let saved_gid = gid_map.map_to_gid(real_saved_gid);
+    let fs_gid = gid_map.map_to_gid(real_fs_gid);
 
     // get execution path
     let exec_path = fs::read_link(format!("/proc/{}/exe", real_pid))?;
