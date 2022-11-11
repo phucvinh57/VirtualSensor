@@ -1,106 +1,90 @@
-# whether kernel is < 4.1 or not
-old_kernel = false
-
 capture_size_limit = 4096
-
-# in nano seconds, 1 milliseconds
-control_command_receive_timeout = 1_000_000
-# in nano seconds, 0.5 milliseconds
-capture_thread_receive_timeout = 500_000
-
+capture_thread_receive_timeout = 500000
+control_command_receive_timeout = 1000000
 cpu_to_capture = "1-1024"
-
-# cpu string to capture, this only affect task dead event, but need to be larger than total cpu so thing works correctly
-# the string also need to be smaller than 32 characters
-# time interval to publish message to kafka (in seconds)
+dev_flag = true
+old_kernel = false
 publish_msg_interval = 10
 
-# if false, send data to kafka, otherwise write to json
-dev_flag = true
-
-# the list of containers and pid to monitor, each section is an entry to containerList
-# / namespace is the root namespace
 [[monitor_targets]]
 container_name = "/"
 pid_list = [264]
 
-#################################### Filter options ####################################
 [filter]
 unix_timestamp = false
-[filter.network_rawstat]
 [filter.network_rawstat.interface_rawstat]
-iname = true
 description = true
+iname = true
 uni_connection_stats = true
 
 [filter.process]
-pid = true
-parent_pid = true
-uid = false
-effective_uid = false
-saved_uid = false
-fs_uid = false
-gid = false
-effective_gid = false
-saved_gid = false
+child_real_pid_list = true
+command = true
+effective_gid = true
+effective_uid = true
+exec_path = true
 fs_gid = false
-real_pid = false
-real_parent_pid = false
-real_uid = false
+fs_uid = true
+gid = true
+parent_pid = true
+pid = true
+real_effective_gid = false
 real_effective_uid = false
-real_saved_uid = false
+real_fs_gid = false
 real_fs_uid = false
 real_gid = false
-real_effective_gid = false
+real_parent_pid = false
+real_pid = false
 real_saved_gid = false
-real_fs_gid = false
-exec_path = true
-command = true
-child_real_pid_list = true
+real_saved_uid = false
+real_uid = false
+saved_gid = false
+saved_uid = true
+uid = true
 
 [filter.process.stat]
 timestamp = true
-total_system_cpu_time = true
-total_user_cpu_time = true
-total_cpu_time = true
-total_rss = true
-total_vss = true
-total_swap = true
-total_io_read = true
-total_io_write = true
 total_block_io_read = true
 total_block_io_write = true
+total_cpu_time = true
+total_io_read = true
+total_io_write = true
+total_rss = true
+total_swap = true
+total_system_cpu_time = true
+total_user_cpu_time = true
+total_vss = true
 
 [filter.process.stat.netstat]
-pack_sent = true
 pack_recv = true
-total_data_sent = true
-total_data_recv = true
-real_data_sent = true
+pack_sent = true
 real_data_recv = true
+real_data_sent = true
+total_data_recv = true
+total_data_sent = true
 
 [filter.process.stat.netstat.interface_stat]
-iname = true
-packet_sent = true
-packet_recv = true
-total_data_sent = true
-total_data_recv = true
-real_data_sent = true
-real_data_recv = true
 connection_stats = true
+iname = true
+packet_recv = true
+packet_sent = true
+real_data_recv = true
+real_data_sent = true
+total_data_recv = true
+total_data_sent = true
 
 [filter.process.thread]
-tid = true
 pid = true
-real_tid = true
 real_pid = true
+real_tid = true
+tid = true
 
 [filter.process.thread.stat]
 timestamp = true
-total_system_cpu_time = true
-total_user_cpu_time = true
+total_block_io_read = true
+total_block_io_write = true
 total_cpu_time = true
 total_io_read = true
 total_io_write = true
-total_block_io_read = true
-total_block_io_write = true
+total_system_cpu_time = true
+total_user_cpu_time = true

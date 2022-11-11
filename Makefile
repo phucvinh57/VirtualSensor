@@ -16,3 +16,6 @@ lint:
 
 run:
 	sudo RUST_BACKTRACE=1 ./sensor Config.toml
+
+redis:
+	docker run -p 6379:6379 --name redis --detach --restart always redis:latest

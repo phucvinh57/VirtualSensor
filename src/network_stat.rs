@@ -496,9 +496,11 @@ fn control_thread(
 
     loop {
         // check if someone want to get data
-        match ctrl_data_in_read_end
-            .recv_timeout(config::get_glob_conf()?.get_control_command_receive_timeout())
-        {
+        match ctrl_data_in_read_end.recv_timeout(
+            config::get_glob_conf()?
+                .read()?
+                .get_control_command_receive_timeout(),
+        ) {
             Ok(_) => {
                 let mut network_raw_stat = NetworkRawStat::new();
 
@@ -817,12 +819,14 @@ fn capture_thread(thread_data: Arc<Mutex<ThreadData>>) -> Result<(), NetworkStat
     let mut capture = Capture::from_device(device)?
         .snaplen(
             config::get_glob_conf()?
+                .read()?
                 .get_capture_size_limit()
                 .try_into()
                 .unwrap(),
         )
         .timeout(
             config::get_glob_conf()?
+                .read()?
                 .get_capture_thread_receive_timeout()
                 .as_millis()
                 .try_into()

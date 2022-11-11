@@ -1103,7 +1103,8 @@ pub fn get_real_proc(
     let lines: Vec<&str> = status_file_content.lines().collect();
 
     // get global config
-    let glob_conf = config::get_glob_conf().unwrap();
+    let binding = config::get_glob_conf().unwrap();
+    let glob_conf = binding.read().unwrap();
 
     // get pid
     let pid = if glob_conf.is_old_kernel() {

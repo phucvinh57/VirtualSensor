@@ -22,3 +22,5 @@ config-file = "0.2.1"
 tokio = { version = "1", features = ["full"] }
 kafka = "0.9.0"
 openssl = { version = "0.10.35", features = ["vendored"] }
+toml = "0.5.9"
+redis = "0.22.1"
