@@ -12,6 +12,9 @@ use serde::{Serialize, Serializer};
 
 use crate::common::{self, CommonError, Count, DataCount, Endian, Inode};
 use crate::config::{self, ConfigError};
+use crate::config::{
+    has_irawstat_description, has_irawstat_iname, has_irawstat_uni_connection_stats,
+};
 
 const TCP_PAYLOAD_TYPE: u8 = 0x06;
 const UDP_PAYLOAD_TYPE: u8 = 0x11;
@@ -188,10 +191,16 @@ struct ThreadData {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct InterfaceRawStat {
+    #[serde(skip_serializing_if = "has_irawstat_iname")]
     iname: String,
+
+    #[serde(skip_serializing_if = "has_irawstat_description")]
     description: String,
 
-    #[serde(serialize_with = "get_irawstat_uni_conn_stats_serialize")]
+    #[serde(
+        serialize_with = "get_irawstat_uni_conn_stats_serialize",
+        skip_serializing_if = "has_irawstat_uni_connection_stats"
+    )]
     uni_connection_stats: HashMap<UniConnection, UniConnectionStat>,
 }
 
@@ -204,7 +213,10 @@ impl InterfaceRawStat {
         }
     }
 
-    pub fn get_uni_connection_stat(&mut self, uni_conn: &UniConnection) -> Option<&UniConnectionStat> {
+    pub fn get_uni_connection_stat(
+        &mut self,
+        uni_conn: &UniConnection,
+    ) -> Option<&UniConnectionStat> {
         self.uni_connection_stats.get_mut(uni_conn).map(|x| {
             x.mark_as_used();
             &*x

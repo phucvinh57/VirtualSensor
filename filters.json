@@ -10,12 +10,12 @@
     {
       "container_name": "/",
       "pid_list": [
-        1
+        264
       ]
     }
   ],
   "filter": {
-    "unix_timestamp": true,
+    "unix_timestamp": false,
     "network_rawstat": {
       "interface_rawstat": {
         "iname": true,
@@ -26,24 +26,24 @@
     "process": {
       "pid": true,
       "parent_pid": true,
-      "uid": true,
-      "effective_uid": true,
-      "saved_uid": true,
-      "fs_uid": true,
-      "gid": true,
-      "effective_gid": true,
-      "saved_gid": true,
-      "fs_gid": true,
-      "real_pid": true,
-      "real_parent_pid": true,
-      "real_uid": true,
-      "real_effective_uid": true,
-      "real_saved_uid": true,
-      "real_fs_uid": true,
-      "real_gid": true,
-      "real_effective_gid": true,
-      "real_saved_gid": true,
-      "real_fs_gid": true,
+      "uid": false,
+      "effective_uid": false,
+      "saved_uid": false,
+      "fs_uid": false,
+      "gid": false,
+      "effective_gid": false,
+      "saved_gid": false,
+      "fs_gid": false,
+      "real_pid": false,
+      "real_parent_pid": false,
+      "real_uid": false,
+      "real_effective_uid": false,
+      "real_saved_uid": false,
+      "real_fs_uid": false,
+      "real_gid": false,
+      "real_effective_gid": false,
+      "real_saved_gid": false,
+      "real_fs_gid": false,
       "exec_path": true,
       "command": true,
       "child_real_pid_list": true,
@@ -78,24 +78,22 @@
           }
         }
       },
-      "threads": [
-        {
-          "tid": true,
-          "pid": true,
-          "real_tid": true,
-          "real_pid": true,
-          "stat": {
-            "timestamp": true,
-            "total_system_cpu_time": true,
-            "total_user_cpu_time": true,
-            "total_cpu_time": true,
-            "total_io_read": true,
-            "total_io_write": true,
-            "total_block_io_read": true,
-            "total_block_io_write": true
-          }
+      "thread": {
+        "tid": true,
+        "pid": true,
+        "real_tid": true,
+        "real_pid": true,
+        "stat": {
+          "timestamp": true,
+          "total_system_cpu_time": true,
+          "total_user_cpu_time": true,
+          "total_cpu_time": true,
+          "total_io_read": true,
+          "total_io_write": true,
+          "total_block_io_read": true,
+          "total_block_io_write": true
         }
-      ]
+      }
     }
   }
 }

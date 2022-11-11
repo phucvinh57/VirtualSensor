@@ -4,7 +4,7 @@ build:
 
 release:
 	LIBPCAP_VER=1.10.1 LIBPCAP_LIBDIR=$(shell pwd)/lib cargo build --release --target=x86_64-unknown-linux-musl
-
+	cp target/x86_64-unknown-linux-musl/debug/virtual_sensor ./sensor
 vendor:
 	cargo vendor ThirdPartySourceOriginal
 
