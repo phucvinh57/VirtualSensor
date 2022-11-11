@@ -18,7 +18,7 @@ cpu_to_capture = "1-1024"
 print_pretty_output = true
 
 # time interval to publish message to kafka (in seconds)
-publish_msg_interval = 5
+publish_msg_interval = 10
 
 # the list of containers and pid to monitor, each section is an entry to containerList
 # / namespace is the root namespace
