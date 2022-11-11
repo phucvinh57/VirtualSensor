@@ -1,22 +1,19 @@
 use serde::Deserialize;
 
-#[allow(unused)]
 #[derive(Deserialize, Clone, Copy, Debug)]
-struct InterfaceRawStat {
+pub struct InterfaceRawStat {
     iname: bool,
     description: bool,
     uni_connection_stats: bool,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Clone, Copy, Debug)]
-struct NetworkRawStat {
+pub struct NetworkRawStat {
     interface_rawstat: InterfaceRawStat,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Clone, Copy, Debug)]
-struct InterfaceStat {
+pub struct InterfaceStat {
     iname: bool,
     packet_sent: bool,
     packet_recv: bool,
@@ -27,9 +24,8 @@ struct InterfaceStat {
     connection_stats: bool,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Clone, Copy, Debug)]
-struct NetStat {
+pub struct NetStat {
     pack_sent: bool,
     pack_recv: bool,
     total_data_sent: bool,
@@ -38,9 +34,8 @@ struct NetStat {
     real_data_recv: bool,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Clone, Copy, Debug)]
-struct ProcessStat {
+pub struct ProcessStat {
     timestamp: bool,
     total_system_cpu_time: bool,
     total_user_cpu_time: bool,
@@ -54,9 +49,8 @@ struct ProcessStat {
     total_block_io_write: bool,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Clone, Copy, Debug)]
-struct ThreadStat {
+pub struct ThreadStat {
     timestamp: bool,
     total_system_cpu_time: bool,
     total_user_cpu_time: bool,
@@ -67,18 +61,16 @@ struct ThreadStat {
     total_block_io_write: bool,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Clone, Copy, Debug)]
-struct Thread {
+pub struct Thread {
     tid: bool,
     pid: bool,
     real_tid: bool,
     real_pid: bool,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Clone, Copy, Debug)]
-struct Process {
+pub struct Process {
     pid: bool,
     parent_pid: bool,
     uid: bool,
@@ -106,11 +98,18 @@ struct Process {
     stat: ProcessStat,
 }
 
-#[allow(unused)]
 #[derive(Deserialize, Clone, Copy, Debug)]
 pub struct Filter {
     unix_timestamp: bool,
     network_rawstat: NetworkRawStat,
-    process: Process
-    
+    process: Process,
+}
+
+impl Filter {
+    pub fn has_unix_timestamp(&self) -> bool {
+        self.unix_timestamp
+    }
+    pub fn get_network_rawstat(&self) -> NetworkRawStat {
+        self.network_rawstat
+    }
 }

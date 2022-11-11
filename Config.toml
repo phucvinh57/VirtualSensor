@@ -16,17 +16,17 @@ cpu_to_capture = "1-1024"
 publish_msg_interval = 10
 
 # if false, send data to kafka, otherwise write to json
-dev_flag = false
+dev_flag = true
 
 # the list of containers and pid to monitor, each section is an entry to containerList
 # / namespace is the root namespace
 [[monitor_targets]]
 container_name = "/"
-pid_list = [1]
+pid_list = [264]
 
 #################################### Filter options ####################################
 [filter]
-unix_timestamp = true
+unix_timestamp = false
 [filter.network_rawstat]
 [filter.network_rawstat.interface_rawstat]
 iname = true

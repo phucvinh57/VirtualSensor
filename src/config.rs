@@ -61,10 +61,10 @@ impl DaemonConfig {
     pub fn get_publish_msg_interval(&self) -> u64 {
         self.publish_msg_interval
     }
-
-    pub fn get_filter(&self) -> Filter {
-        self.filter
+    pub fn get_filter(&self) -> &Filter {
+        &self.filter
     }
+
 }
 
 fn duration_to_nanosecs<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Duration, D::Error> {
@@ -91,6 +91,11 @@ pub fn get_glob_conf() -> Result<Arc<DaemonConfig>, ConfigError> {
             None => Err(ConfigError::UninitializedConfig),
         }
     }
+}
+
+pub fn has_unix_timestamp(_: &u64) -> bool {
+    let glob_conf = get_glob_conf().unwrap();
+    !glob_conf.get_filter().to_owned().has_unix_timestamp()
 }
 
 #[derive(Debug)]

@@ -44,6 +44,8 @@ impl ContainerStat {
 pub struct TotalStat {
     container_stats: Vec<ContainerStat>,
     network_rawstat: NetworkRawStat,
+
+    #[serde(skip_serializing_if = "config::has_unix_timestamp")]
     unix_timestamp: u64, // in seconds
 }
 
@@ -181,7 +183,7 @@ async fn read_monitored_data(kafka_producer: &mut Producer) -> Result<(), Daemon
                 .unwrap()
                 .as_bytes(),
         );
-        
+        println!("Wrote to result.json !");
     } else {
         kafka_producer
             .send(&Record::from_value(
@@ -189,8 +191,9 @@ async fn read_monitored_data(kafka_producer: &mut Producer) -> Result<(), Daemon
                 serde_json::to_string(&total_stat).unwrap().as_bytes(),
             ))
             .unwrap();
+        println!("Sent to kafka !");
     }
-    println!("Sent to kafka !");
+
     Ok(())
 }
 
@@ -208,7 +211,6 @@ async fn main() -> Result<(), DaemonError> {
     network_stat::init_network_stat_capture()?;
 
     let glob_conf = config::get_glob_conf().unwrap();
-    println!("{:?}", glob_conf.get_filter());
 
     let forever = task::spawn(async move {
         let mut interval =
