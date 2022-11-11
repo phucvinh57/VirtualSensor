@@ -12,6 +12,9 @@ use serde::{Serialize, Serializer};
 
 use crate::common::{self, CommonError, Count, DataCount, Endian, Inode};
 use crate::config::{self, ConfigError};
+use crate::config::{
+    has_irawstat_description, has_irawstat_iname, has_irawstat_uni_connection_stats,
+};
 
 const TCP_PAYLOAD_TYPE: u8 = 0x06;
 const UDP_PAYLOAD_TYPE: u8 = 0x11;
@@ -94,7 +97,7 @@ impl Connection {
         self.remote_port
     }
 
-    pub fn get_conn_type(&self) -> ConnectionType {
+    pub fn get_connection_type(&self) -> ConnectionType {
         self.conn_type
     }
 }
@@ -188,11 +191,17 @@ struct ThreadData {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct InterfaceRawStat {
+    #[serde(skip_serializing_if = "has_irawstat_iname")]
     iname: String,
+
+    #[serde(skip_serializing_if = "has_irawstat_description")]
     description: String,
 
-    #[serde(serialize_with = "get_irawstat_uni_conn_stats_serialize")]
-    uni_conn_stats: HashMap<UniConnection, UniConnectionStat>,
+    #[serde(
+        serialize_with = "get_irawstat_uni_conn_stats_serialize",
+        skip_serializing_if = "has_irawstat_uni_connection_stats"
+    )]
+    uni_connection_stats: HashMap<UniConnection, UniConnectionStat>,
 }
 
 impl InterfaceRawStat {
@@ -200,19 +209,22 @@ impl InterfaceRawStat {
         Self {
             iname,
             description,
-            uni_conn_stats: HashMap::new(),
+            uni_connection_stats: HashMap::new(),
         }
     }
 
-    pub fn get_uni_conn_stat(&mut self, uni_conn: &UniConnection) -> Option<&UniConnectionStat> {
-        self.uni_conn_stats.get_mut(uni_conn).map(|x| {
+    pub fn get_uni_connection_stat(
+        &mut self,
+        uni_conn: &UniConnection,
+    ) -> Option<&UniConnectionStat> {
+        self.uni_connection_stats.get_mut(uni_conn).map(|x| {
             x.mark_as_used();
             &*x
         })
     }
 
     pub fn remove_used_uni_conn_stats(&mut self) {
-        self.uni_conn_stats
+        self.uni_connection_stats
             .retain(|_uni_conn, uni_conn_stat| !uni_conn_stat.is_used);
     }
 }
@@ -233,7 +245,7 @@ pub struct NetworkRawStat {
     iname_lookup_table: HashMap<Connection, String>,
 
     #[serde(serialize_with = "get_network_rawstat_uni_connection_stats_serialize")]
-    iterface_rawstats: HashMap<String, InterfaceRawStat>,
+    interface_rawstats: HashMap<String, InterfaceRawStat>,
 }
 
 impl NetworkRawStat {
@@ -241,7 +253,7 @@ impl NetworkRawStat {
         Self {
             conn_lookup_table: HashMap::new(),
             iname_lookup_table: HashMap::new(),
-            iterface_rawstats: HashMap::new(),
+            interface_rawstats: HashMap::new(),
         }
     }
 
@@ -258,13 +270,13 @@ impl NetworkRawStat {
     }
 
     pub fn get_irawstat(&mut self, iname: &str) -> Option<&mut InterfaceRawStat> {
-        self.iterface_rawstats
+        self.interface_rawstats
             .get_mut(iname)
             .and_then(|irawstat| Some(irawstat))
     }
 
     pub fn remove_unused_uni_connection_stats(&mut self) {
-        for (_, irawstat) in &mut self.iterface_rawstats {
+        for (_, irawstat) in &mut self.interface_rawstats {
             irawstat.remove_used_uni_conn_stats();
         }
     }
@@ -484,9 +496,11 @@ fn control_thread(
 
     loop {
         // check if someone want to get data
-        match ctrl_data_in_read_end
-            .recv_timeout(config::get_glob_conf()?.get_control_command_receive_timeout())
-        {
+        match ctrl_data_in_read_end.recv_timeout(
+            config::get_glob_conf()?
+                .read()?
+                .get_control_command_receive_timeout(),
+        ) {
             Ok(_) => {
                 let mut network_raw_stat = NetworkRawStat::new();
 
@@ -758,11 +772,11 @@ fn control_thread(
                         mutex_lock.device.desc.clone().unwrap_or(String::new()),
                     );
 
-                    irawstat.uni_conn_stats =
+                    irawstat.uni_connection_stats =
                         mutex_lock.uni_conn_stats.take().unwrap_or(HashMap::new());
 
                     network_raw_stat
-                        .iterface_rawstats
+                        .interface_rawstats
                         .insert(iname.clone(), irawstat);
                 }
 
@@ -805,12 +819,14 @@ fn capture_thread(thread_data: Arc<Mutex<ThreadData>>) -> Result<(), NetworkStat
     let mut capture = Capture::from_device(device)?
         .snaplen(
             config::get_glob_conf()?
+                .read()?
                 .get_capture_size_limit()
                 .try_into()
                 .unwrap(),
         )
         .timeout(
             config::get_glob_conf()?
+                .read()?
                 .get_capture_thread_receive_timeout()
                 .as_millis()
                 .try_into()

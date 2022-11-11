@@ -4,8 +4,9 @@ mod netlink;
 mod network_stat;
 mod process;
 mod taskstat;
+use config::update_glob_conf;
+use kafka::producer::{Producer, Record, RequiredAcks};
 use serde::Serialize;
-use serde_json;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::{task, time};
 
@@ -44,6 +45,8 @@ impl ContainerStat {
 pub struct TotalStat {
     container_stats: Vec<ContainerStat>,
     network_rawstat: NetworkRawStat,
+
+    #[serde(skip_serializing_if = "config::has_unix_timestamp")]
     unix_timestamp: u64, // in seconds
 }
 
@@ -79,7 +82,7 @@ fn get_processes_stats(
     Ok(processes_list)
 }
 
-async fn read_monitored_data() -> Result<(), DaemonError> {
+async fn read_monitored_data(kafka_producer: &mut Producer) -> Result<(), DaemonError> {
     // create new taskstat connection
     let mut taskstats_conn = TaskStatsConnection::new()?;
 
@@ -94,7 +97,7 @@ async fn read_monitored_data() -> Result<(), DaemonError> {
     let glob_conf = config::get_glob_conf().unwrap();
 
     // for each monitor target
-    'monitorLoop: for monitor_target in &glob_conf.get_monitor_targets() {
+    'monitorLoop: for monitor_target in &glob_conf.read().unwrap().get_monitor_targets() {
         // get needed process list
         let real_pid_list = if monitor_target.container_name != "/" {
             let mut result = Vec::new();
@@ -117,7 +120,7 @@ async fn read_monitored_data() -> Result<(), DaemonError> {
                 // get that process pid
                 let real_pid = Pid::new(line.split_whitespace().collect::<Vec<&str>>()[1].parse()?);
 
-                if glob_conf.is_old_kernel() {
+                if glob_conf.read().unwrap().is_old_kernel() {
                     result.push(real_pid);
                     continue;
                 }
@@ -174,20 +177,24 @@ async fn read_monitored_data() -> Result<(), DaemonError> {
         .remove_unused_uni_connection_stats();
 
     // return result
-    if config::get_glob_conf().unwrap().is_print_pretty_output() {
+    if glob_conf.read().unwrap().get_dev_flag() {
         let _ = fs::write(
             "result.json",
             serde_json::to_string_pretty(&total_stat)
                 .unwrap()
                 .as_bytes(),
         );
+        println!("Wrote to result.json !");
     } else {
-        let _ = fs::write(
-            "result.json",
-            serde_json::to_string(&total_stat).unwrap().as_bytes(),
-        );
+        kafka_producer
+            .send(&Record::from_value(
+                "monitoring",
+                serde_json::to_string(&total_stat).unwrap().as_bytes(),
+            ))
+            .unwrap();
+        println!("Sent to kafka !");
     }
-    println!("Sent to kafka !");
+
     Ok(())
 }
 
@@ -199,26 +206,48 @@ async fn main() -> Result<(), DaemonError> {
         return Err(DaemonError::NoConfigPath);
     }
 
-    config::fetch_glob_conf(&env::args().nth(1).unwrap())?;
+    let config_path = env::args().nth(1).unwrap();
+
+    config::init_glob_conf(config_path.as_str())?;
 
     // init network capture
     network_stat::init_network_stat_capture()?;
-
     let glob_conf = config::get_glob_conf().unwrap();
 
-    let forever = task::spawn(async move {
-        let mut interval =
-            time::interval(Duration::from_secs(glob_conf.get_publish_msg_interval()));
+    let monitoring_task = task::spawn(async move {
+        let mut interval = time::interval(Duration::from_secs(
+            glob_conf.read().unwrap().get_publish_msg_interval(),
+        ));
 
+        let mut kafka_producer = Producer::from_hosts(vec!["localhost:9092".to_owned()])
+            .with_ack_timeout(Duration::from_secs(1))
+            .with_required_acks(RequiredAcks::One)
+            .create()
+            .unwrap();
         loop {
             interval.tick().await;
-            let _ = read_monitored_data().await;
+            let _ = read_monitored_data(&mut kafka_producer).await;
         }
     });
 
-    let _ = forever.await;
+    let serve_config_task_change = task::spawn(async move {
+        let redis_client = redis::Client::open("redis://127.0.0.1/").unwrap();
+        let mut connection = redis_client.get_connection().unwrap();
+        let mut pubsub = connection.as_pubsub();
 
-    Err(DaemonError::UnknownErr)
+        pubsub.subscribe("/update/config/1915940").unwrap();
+
+        loop {
+            let msg = pubsub.get_message().unwrap();
+            let payload: String = msg.get_payload().unwrap();
+            update_glob_conf(config_path.as_str(), payload.as_str()).unwrap();
+        }
+    });
+
+    match tokio::join!(serve_config_task_change, monitoring_task).0 {
+        Ok(_) => Ok(()),
+        Err(_) => Err(DaemonError::UnknownErr),
+    }
 }
 
 #[derive(Debug)]
