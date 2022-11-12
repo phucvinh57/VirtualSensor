@@ -50,5 +50,8 @@ You can use `SampleConfig.toml` as a config template.
 
 The main process has two threads.
 
-* A thread subscribes to redis to listen configuration changes. If it receives a message, it will change the configs in runtime and then save to config file. Currently, the topic is hardcode `/update/config/1915940`
+* A thread subscribes to redis to listen configuration changes.
+  * If it receives a message, it will change the configs in runtime and then save to config file.
+  * The message body must have format like `sampleConfig.json`. If not, an error will be returned.
+  * Currently, the topic is hardcode `/update/config/1915940`
 * Another thread reads monitoring data and sends to kafka every `publish_msg_interval` seconds. Currently, the topic is hardcode `/monitoring/1915940`

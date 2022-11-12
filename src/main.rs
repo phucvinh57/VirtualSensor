@@ -250,7 +250,14 @@ async fn main() -> Result<(), DaemonError> {
         loop {
             let msg = pubsub.get_message().unwrap();
             let payload: String = msg.get_payload().unwrap();
-            update_glob_conf(config_path.as_str(), payload.as_str()).unwrap();
+            match update_glob_conf(config_path.as_str(), payload.as_str()) {
+                Ok(_) => {
+                    println!("Config changes")
+                }
+                Err(err) => {
+                    println!("{}", err)
+                }
+            };
         }
     });
 

@@ -87,15 +87,18 @@ pub fn init_glob_conf(conf_path: &str) -> Result<(), ConfigError> {
 // Conf_text js JSON formatted
 pub fn update_glob_conf(conf_path: &str, conf_text: &str) -> Result<(), ConfigError> {
     let binding = get_glob_conf().unwrap();
-    let mut glob_conf = binding.write().unwrap();
-
-    let config_in_json = serde_json::from_str(conf_text).unwrap();
-    *glob_conf = config_in_json;
-
-    let config_in_toml: toml::Value = serde_json::from_str(conf_text).unwrap();
-    let _ = fs::write(conf_path, config_in_toml.to_string());
-
-    Ok(())
+    let write = binding.write();
+    match write {
+        Ok(mut glob_conf) => {
+            let config_in_json = serde_json::from_str(conf_text).unwrap();
+            *glob_conf = config_in_json;
+        
+            let config_in_toml: toml::Value = serde_json::from_str(conf_text).unwrap();
+            let _ = fs::write(conf_path, config_in_toml.to_string());
+            Ok(())
+        },
+        Err(_) => Err(ConfigError::IncorrectConfig) 
+    }
 }
 
 // TODO (get from file instead of from init_glob_conf result)
@@ -630,6 +633,7 @@ pub fn has_thread_stat_total_block_io_write<T>(_: &T) -> bool {
 
 #[derive(Debug)]
 pub enum ConfigError {
+    IncorrectConfig,
     LoadConfigErr(ConfigFileError),
     UninitializedConfig,
 }
@@ -643,6 +647,7 @@ impl fmt::Display for ConfigError {
                 String::from(format!("Load config error: {}", conf_err))
             }
             Self::UninitializedConfig => String::from("Uninitialized config"),
+            Self::IncorrectConfig => String::from("Incorrect config!"),
         };
 
         write!(f, "{}", result)
