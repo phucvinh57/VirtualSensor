@@ -3,3 +3,5 @@ ThirdPartySourceOriginal/
 sensor
 *.json
 !filters.json
+
+node_modules
