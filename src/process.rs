@@ -1364,6 +1364,7 @@ pub fn get_real_proc(
 pub fn iterate_proc_tree(
     root_proc: &Process,
     processes_list: &mut Vec<Process>,
+    iterated_pids: &mut Vec<Pid>,
     taskstats_conn: &TaskStatsConnection,
     net_rawstat: &mut NetworkRawStat,
 ) {
@@ -1375,11 +1376,14 @@ pub fn iterate_proc_tree(
     while !procs_stack.is_empty() {
         temp = procs_stack.pop().unwrap();
 
-        // TODO: instead of push to list, using thread & shared data
         // Push data of a process here
         processes_list.push(temp.clone());
+        iterated_pids.push(temp.real_pid);
 
         for child_real_pid in &temp.child_real_pid_list {
+            if iterated_pids.contains(child_real_pid) {
+                continue;
+            }
             if let Ok(child_proc) = get_real_proc(child_real_pid, taskstats_conn, net_rawstat) {
                 procs_stack.push(child_proc)
             }

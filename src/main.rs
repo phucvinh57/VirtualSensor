@@ -72,10 +72,20 @@ fn get_processes_stats(
     net_rawstat: &mut NetworkRawStat,
 ) -> Result<Vec<process::Process>, DaemonError> {
     let mut processes_list = Vec::new();
+    let mut iterated_pids = Vec::new();
 
     for curr_real_pid in real_pid_list {
+        if iterated_pids.contains(curr_real_pid) {
+            continue;
+        }
         if let Ok(proc) = process::get_real_proc(curr_real_pid, taskstats_conn, net_rawstat) {
-            iterate_proc_tree(&proc, &mut processes_list, taskstats_conn, net_rawstat);
+            iterate_proc_tree(
+                &proc,
+                &mut processes_list,
+                &mut iterated_pids,
+                taskstats_conn,
+                net_rawstat,
+            );
         }
     }
 
