@@ -1,5 +1,5 @@
 target/
 ThirdPartySourceOriginal/
 sensor
+Config.toml
 *.json
-!filters.json

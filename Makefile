@@ -19,3 +19,6 @@ run:
 
 redis:
 	docker run -p 6379:6379 --name redis --detach --restart always redis:latest
+
+git_clean_local:
+	git fetch -p && git branch -vv | awk '/: gone]/{print $1}' | xargs git branch -D
