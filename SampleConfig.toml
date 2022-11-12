@@ -1,14 +1,11 @@
 capture_size_limit = 4096
 
-# in nano seconds, 1 milliseconds
 capture_thread_receive_timeout = 500000
 
-# in nano seconds, 0.5 milliseconds
 control_command_receive_timeout = 1000000
 cpu_to_capture = "1-1024"
 dev_flag = true
 
-# whether kernel is < 4.1 or not
 old_kernel = false
 publish_msg_interval = 10
 

@@ -198,7 +198,7 @@ async fn read_monitored_data(kafka_producer: &mut Producer) -> Result<(), Daemon
     } else {
         kafka_producer
             .send(&Record::from_value(
-                "monitoring",
+                "/monitoring/1915940",
                 serde_json::to_string(&total_stat).unwrap().as_bytes(),
             ))
             .unwrap();
