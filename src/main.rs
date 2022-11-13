@@ -92,7 +92,7 @@ fn get_processes_stats(
     Ok(processes_list)
 }
 
-async fn read_monitored_data(kafka_producer: &mut Producer) -> Result<(), DaemonError> {
+async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<(), DaemonError> {
     // create new taskstat connection
     let mut taskstats_conn = TaskStatsConnection::new()?;
 
@@ -196,7 +196,7 @@ async fn read_monitored_data(kafka_producer: &mut Producer) -> Result<(), Daemon
         );
         println!("Wrote to result.json !");
     } else {
-        kafka_producer
+        kafka_producer.as_mut().unwrap()
             .send(&Record::from_value(
                 "/monitoring/1915940",
                 serde_json::to_string(&total_stat).unwrap().as_bytes(),
@@ -229,11 +229,16 @@ async fn main() -> Result<(), DaemonError> {
             glob_conf.read().unwrap().get_publish_msg_interval(),
         ));
 
-        let mut kafka_producer = Producer::from_hosts(vec!["localhost:9092".to_owned()])
+        let mut kafka_producer = if !glob_conf.read().unwrap().get_dev_flag() {
+            Some(Producer::from_hosts(vec!["localhost:9092".to_owned()])
             .with_ack_timeout(Duration::from_secs(1))
             .with_required_acks(RequiredAcks::One)
             .create()
-            .unwrap();
+            .unwrap())
+        } else {
+            None
+        };
+
         loop {
             interval.tick().await;
             let _ = read_monitored_data(&mut kafka_producer).await;
