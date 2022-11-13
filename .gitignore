@@ -1,6 +1,5 @@
 target/
 ThirdPartySourceOriginal/
-sensor
 Config.toml
 *.json
 !sampleConfig.json
