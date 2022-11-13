@@ -11,7 +11,7 @@ publish_msg_interval = 10
 
 [[monitor_targets]]
 container_name = "/"
-pid_list = [264]
+pid_list = [1]
 
 [filter]
 unix_timestamp = false
