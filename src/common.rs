@@ -4,7 +4,7 @@ use std::ops::{Add, AddAssign};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{fmt, num};
 
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 pub struct Uid(u128);
@@ -75,7 +75,7 @@ impl TryFrom<&str> for Inode {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct Timestamp(u128);
 
 impl Timestamp {

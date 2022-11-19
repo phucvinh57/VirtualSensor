@@ -10,6 +10,7 @@ use serde::Serialize;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::{task, time};
 
+use dotenv::dotenv;
 use std::any::Any;
 use std::convert::TryFrom;
 use std::fs;
@@ -187,22 +188,36 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
         .remove_unused_uni_connection_stats();
 
     // return result
-    if glob_conf.read().unwrap().get_dev_flag() {
-        let _ = fs::write(
-            "result.json",
-            serde_json::to_string_pretty(&total_stat)
-                .unwrap()
-                .as_bytes(),
-        );
-        println!("Wrote to result.json !");
+
+    let dev_flag = glob_conf.read().unwrap().get_dev_flag();
+    let message_chunk_size = glob_conf.read().unwrap().get_message_chunk_size();
+    let results_as_str = serde_json::to_string(&total_stat).unwrap();
+    let messages = if let Some(size) = message_chunk_size {
+        results_as_str.chars().collect::<Vec<char>>()
+            .chunks(size)
+            .map(|c| c.iter().collect::<String>())
+            .collect::<Vec<String>>()
     } else {
-        kafka_producer.as_mut().unwrap()
-            .send(&Record::from_value(
-                "/monitoring/1915940",
-                serde_json::to_string(&total_stat).unwrap().as_bytes(),
-            ))
-            .unwrap();
-        println!("Sent to kafka !");
+        vec![results_as_str; 1]
+    };
+
+    let mut i = 0;
+    for message in messages.iter() {
+        if dev_flag {
+            let _ = fs::write(format!("./results/chunk_{}.txt", i),message );
+            println!("Wrote to results/chunk_{}.txt", i);
+        } else {
+            kafka_producer
+                .as_mut()
+                .unwrap()
+                .send(&Record::from_value(
+                    "/monitoring/1915940",
+                    message.to_owned(),
+                ))
+                .unwrap();
+            println!("Sent to kafka !");
+        }
+        i += 1;
     }
 
     Ok(())
@@ -211,12 +226,16 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
 #[tokio::main]
 async fn main() -> Result<(), DaemonError> {
     // init config
-    if env::args().len() != 2 {
-        println!("Usage: ./daemon [config path]");
-        return Err(DaemonError::NoConfigPath);
-    }
 
-    let config_path = env::args().nth(1).unwrap();
+    dotenv().ok();
+    let redis_connection_url =
+        std::env::var("REDIS_CONNECTION_URL").expect("REDIS_CONNECTION_URL must be set.");
+    let kafka_connection_url =
+        std::env::var("KAFKA_CONNECTION_URL").expect("KAFKA_CONNECTION_URL must be set.");
+
+    let config_path = if env::args().len() == 2 {
+        env::args().nth(1).unwrap()
+    } else { "config.toml".to_owned() };
 
     config::init_glob_conf(config_path.as_str())?;
 
@@ -230,11 +249,13 @@ async fn main() -> Result<(), DaemonError> {
         ));
 
         let mut kafka_producer = if !glob_conf.read().unwrap().get_dev_flag() {
-            Some(Producer::from_hosts(vec!["localhost:9092".to_owned()])
-            .with_ack_timeout(Duration::from_secs(1))
-            .with_required_acks(RequiredAcks::One)
-            .create()
-            .unwrap())
+            Some(
+                Producer::from_hosts(vec![kafka_connection_url])
+                    .with_ack_timeout(Duration::from_secs(1))
+                    .with_required_acks(RequiredAcks::One)
+                    .create()
+                    .unwrap(),
+            )
         } else {
             None
         };
@@ -246,7 +267,7 @@ async fn main() -> Result<(), DaemonError> {
     });
 
     let serve_config_task_change = task::spawn(async move {
-        let redis_client = redis::Client::open("redis://127.0.0.1/").unwrap();
+        let redis_client = redis::Client::open(redis_connection_url).unwrap();
         let mut connection = redis_client.get_connection().unwrap();
         let mut pubsub = connection.as_pubsub();
 

@@ -9,6 +9,7 @@ use serde::{Deserialize, Deserializer};
 use serde_json;
 use toml;
 
+// use crate::common::Timestamp;
 use crate::process::Pid;
 
 use filter::Filter;
@@ -20,8 +21,23 @@ pub struct MonitorTarget {
     pub container_name: String,
     pub pid_list: Vec<Pid>,
 }
+// #[derive(Deserialize)]
+// pub struct SensorInfo {
+//     id: String,
+//     name: String,
+//     cluster: String,
 
-// TODO: add fields to config struct
+//     #[serde(skip_serializing_if = "Option::is_none")]
+//     active: Option<bool>,
+//     updatedAt: Timestamp,
+
+//     config: DaemonConfig
+// }
+
+// impl SensorInfo {
+
+// }
+
 #[derive(Deserialize)]
 pub struct DaemonConfig {
     old_kernel: bool,
@@ -37,6 +53,8 @@ pub struct DaemonConfig {
     dev_flag: bool,
     publish_msg_interval: u64,
     monitor_targets: Vec<MonitorTarget>,
+
+    msg_chunk_size: Option<usize>,
 
     filter: Filter,
 }
@@ -66,6 +84,9 @@ impl DaemonConfig {
     pub fn get_filter(&self) -> &Filter {
         &self.filter
     }
+    pub fn get_message_chunk_size(&self) -> Option<usize> {
+        self.msg_chunk_size
+    }
 }
 
 fn duration_to_nanosecs<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Duration, D::Error> {
@@ -90,7 +111,7 @@ pub fn update_glob_conf(conf_path: &str, conf_text: &str) -> Result<(), ConfigEr
     let write = binding.write();
     match write {
         Ok(mut glob_conf) => {
-            let config_in_json = serde_json::from_str(conf_text).unwrap();
+            let config_in_json: DaemonConfig = serde_json::from_str(conf_text).unwrap();
             *glob_conf = config_in_json;
         
             let config_in_toml: toml::Value = serde_json::from_str(conf_text).unwrap();
