@@ -1,3 +1,6 @@
+name="VS1"
+cluster="C1"
+
 capture_size_limit = 4096
 capture_thread_receive_timeout = 500000
 control_command_receive_timeout = 1000000

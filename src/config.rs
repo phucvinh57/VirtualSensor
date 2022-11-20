@@ -40,8 +40,10 @@ pub struct MonitorTarget {
 
 #[derive(Deserialize)]
 pub struct DaemonConfig {
-    old_kernel: bool,
+    name: String,
+    cluster: String,
 
+    old_kernel: bool,
     capture_size_limit: usize,
 
     #[serde(deserialize_with = "duration_to_nanosecs")]
@@ -53,13 +55,17 @@ pub struct DaemonConfig {
     dev_flag: bool,
     publish_msg_interval: u64,
     monitor_targets: Vec<MonitorTarget>,
-
     msg_chunk_size: Option<usize>,
-
     filter: Filter,
 }
 
 impl DaemonConfig {
+    pub fn get_name(&self) -> String {
+        self.name.clone()
+    }
+    pub fn get_cluster(&self) -> String {
+        self.cluster.clone()
+    }
     pub fn is_old_kernel(&self) -> bool {
         self.old_kernel
     }
@@ -105,7 +111,6 @@ pub fn init_glob_conf(conf_path: &str) -> Result<(), ConfigError> {
     Ok(())
 }
 
-// Conf_text js JSON formatted
 pub fn update_glob_conf(conf_path: &str, conf_text: &str) -> Result<(), ConfigError> {
     let binding = get_glob_conf().unwrap();
     let write = binding.write();
@@ -122,7 +127,6 @@ pub fn update_glob_conf(conf_path: &str, conf_text: &str) -> Result<(), ConfigEr
     }
 }
 
-// TODO (get from file instead of from init_glob_conf result)
 pub fn get_glob_conf() -> Result<Arc<RwLock<DaemonConfig>>, ConfigError> {
     unsafe {
         match &GLOBAL_CONFIG {

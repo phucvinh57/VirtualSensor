@@ -66,7 +66,6 @@ impl TotalStat {
     }
 }
 
-// TODO
 fn get_processes_stats(
     real_pid_list: &[Pid],
     taskstats_conn: &TaskStatsConnection,
@@ -193,7 +192,9 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
     let message_chunk_size = glob_conf.read().unwrap().get_message_chunk_size();
     let results_as_str = serde_json::to_string(&total_stat).unwrap();
     let messages = if let Some(size) = message_chunk_size {
-        results_as_str.chars().collect::<Vec<char>>()
+        results_as_str
+            .chars()
+            .collect::<Vec<char>>()
             .chunks(size)
             .map(|c| c.iter().collect::<String>())
             .collect::<Vec<String>>()
@@ -202,16 +203,19 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
     };
 
     let mut i = 0;
+    let cluster_name = glob_conf.read().unwrap().get_cluster();
+    let sensor_name = glob_conf.read().unwrap().get_name();
+    
     for message in messages.iter() {
         if dev_flag {
-            let _ = fs::write(format!("./results/chunk_{}.txt", i),message );
+            let _ = fs::write(format!("./results/chunk_{}.txt", i), message);
             println!("Wrote to results/chunk_{}.txt", i);
         } else {
             kafka_producer
                 .as_mut()
                 .unwrap()
                 .send(&Record::from_value(
-                    "/monitoring/1915940",
+                    &format!("/monitoring/{}/{}", cluster_name, sensor_name),
                     message.to_owned(),
                 ))
                 .unwrap();
@@ -235,7 +239,9 @@ async fn main() -> Result<(), DaemonError> {
 
     let config_path = if env::args().len() == 2 {
         env::args().nth(1).unwrap()
-    } else { "config.toml".to_owned() };
+    } else {
+        "config.toml".to_owned()
+    };
 
     config::init_glob_conf(config_path.as_str())?;
 
@@ -271,7 +277,13 @@ async fn main() -> Result<(), DaemonError> {
         let mut connection = redis_client.get_connection().unwrap();
         let mut pubsub = connection.as_pubsub();
 
-        pubsub.subscribe("/update/config/1915940").unwrap();
+        let glob_conf = config::get_glob_conf().unwrap();
+        let cluster_name = glob_conf.read().unwrap().get_cluster();
+        let sensor_name = glob_conf.read().unwrap().get_name();
+
+        pubsub
+            .subscribe(format!("/update/config/{}/{}", cluster_name, sensor_name))
+            .unwrap();
 
         loop {
             let msg = pubsub.get_message().unwrap();

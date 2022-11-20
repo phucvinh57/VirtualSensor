@@ -721,7 +721,6 @@ impl Thread {
     }
 }
 
-// TODO: Add new version of process
 #[derive(Debug, Clone, Serialize)]
 pub struct Process {
     #[serde(skip_serializing_if = "config::has_process_pid")]
