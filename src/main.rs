@@ -33,6 +33,23 @@ pub struct ContainerStat {
     processes: Vec<process::Process>,
 }
 
+#[derive(Serialize)]
+pub struct MessageChunk {
+    sensor_name: String,
+    cluster_name: String,
+    message: String,
+}
+
+impl MessageChunk {
+    pub fn new(sensor_name: String, cluster_name: String, message: String) -> Self {
+        Self {
+            sensor_name,
+            cluster_name,
+            message,
+        }
+    }
+}
+
 impl ContainerStat {
     pub fn new(container_name: String) -> Self {
         Self {
@@ -205,10 +222,18 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
     let mut i = 0;
     let cluster_name = glob_conf.read().unwrap().get_cluster();
     let sensor_name = glob_conf.read().unwrap().get_name();
-    
+
     for message in messages.iter() {
+        let msg_chunk = MessageChunk::new(
+            sensor_name.clone(),
+            cluster_name.clone(),
+            message.to_owned(),
+        );
         if dev_flag {
-            let _ = fs::write(format!("./results/chunk_{}.txt", i), message);
+            let _ = fs::write(
+                format!("./results/chunk_{}.txt", i),
+                serde_json::to_string_pretty(&msg_chunk).unwrap(),
+            );
             println!("Wrote to results/chunk_{}.txt", i);
         } else {
             kafka_producer
@@ -216,13 +241,14 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
                 .unwrap()
                 .send(&Record::from_value(
                     &format!("/monitoring/{}/{}", cluster_name, sensor_name),
-                    message.to_owned(),
+                    serde_json::to_string(&msg_chunk).unwrap(),
                 ))
                 .unwrap();
             println!("Sent to kafka !");
         }
         i += 1;
     }
+    println!("==========");
 
     Ok(())
 }
@@ -230,6 +256,7 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
 #[tokio::main]
 async fn main() -> Result<(), DaemonError> {
     // init config
+    // let is_changed_config = Arc::new(Mutex::new(false));
 
     dotenv().ok();
     let redis_connection_url =
@@ -250,10 +277,6 @@ async fn main() -> Result<(), DaemonError> {
     let glob_conf = config::get_glob_conf().unwrap();
 
     let monitoring_task = task::spawn(async move {
-        let mut interval = time::interval(Duration::from_secs(
-            glob_conf.read().unwrap().get_publish_msg_interval(),
-        ));
-
         let mut kafka_producer = if !glob_conf.read().unwrap().get_dev_flag() {
             Some(
                 Producer::from_hosts(vec![kafka_connection_url])
@@ -266,6 +289,9 @@ async fn main() -> Result<(), DaemonError> {
             None
         };
 
+        let mut interval = time::interval(Duration::from_secs(
+            glob_conf.read().unwrap().get_publish_msg_interval(),
+        ));
         loop {
             interval.tick().await;
             let _ = read_monitored_data(&mut kafka_producer).await;
@@ -289,7 +315,16 @@ async fn main() -> Result<(), DaemonError> {
             let msg = pubsub.get_message().unwrap();
             let payload: String = msg.get_payload().unwrap();
             match update_glob_conf(config_path.as_str(), payload.as_str()) {
-                Ok(_) => {
+                Ok((new_sensor_name, new_cluster_name)) => {
+                    pubsub
+                        .unsubscribe(format!("/update/config/{}/{}", cluster_name, sensor_name))
+                        .unwrap();
+                    pubsub
+                        .subscribe(format!(
+                            "/update/config/{}/{}",
+                            new_cluster_name, new_sensor_name
+                        ))
+                        .unwrap();
                     println!("Config changes")
                 }
                 Err(err) => {

@@ -111,17 +111,20 @@ pub fn init_glob_conf(conf_path: &str) -> Result<(), ConfigError> {
     Ok(())
 }
 
-pub fn update_glob_conf(conf_path: &str, conf_text: &str) -> Result<(), ConfigError> {
+pub fn update_glob_conf(conf_path: &str, conf_text: &str) -> Result<(String, String), ConfigError> {
     let binding = get_glob_conf().unwrap();
     let write = binding.write();
     match write {
         Ok(mut glob_conf) => {
             let config_in_json: DaemonConfig = serde_json::from_str(conf_text).unwrap();
+            let name = config_in_json.name.clone();
+            let cluster = config_in_json.cluster.clone();
             *glob_conf = config_in_json;
         
             let config_in_toml: toml::Value = serde_json::from_str(conf_text).unwrap();
             let _ = fs::write(conf_path, config_in_toml.to_string());
-            Ok(())
+
+            Ok((name, cluster))
         },
         Err(_) => Err(ConfigError::IncorrectConfig) 
     }
