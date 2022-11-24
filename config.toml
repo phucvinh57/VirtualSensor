@@ -8,14 +8,14 @@ cpu_to_capture = "1-1024"
 dev_flag = true
 old_kernel = false
 publish_msg_interval = 2
-msg_chunk_size = 512
+msg_chunk_size = 2048
 
 [[monitor_targets]]
 container_name = "/"
-pid_list = [264]
+pid_list = [1]
 
 [filter]
-unix_timestamp = false
+unix_timestamp = true
 [filter.network_rawstat.interface_rawstat]
 description = true
 iname = true

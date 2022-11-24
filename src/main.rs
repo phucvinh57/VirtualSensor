@@ -231,10 +231,10 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
         );
         if dev_flag {
             let _ = fs::write(
-                format!("./results/chunk_{}.txt", i),
+                format!("./results/chunk_{}.json", i),
                 serde_json::to_string_pretty(&msg_chunk).unwrap(),
             );
-            println!("Wrote to results/chunk_{}.txt", i);
+            println!("Wrote to results/chunk_{}.json", i);
         } else {
             kafka_producer
                 .as_mut()
