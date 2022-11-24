@@ -240,7 +240,7 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
                 .as_mut()
                 .unwrap()
                 .send(&Record::from_value(
-                    &format!("/monitoring/{}/{}", cluster_name, sensor_name),
+                    &format!("monitoring"),
                     serde_json::to_string(&msg_chunk).unwrap(),
                 ))
                 .unwrap();
@@ -275,6 +275,8 @@ async fn main() -> Result<(), DaemonError> {
     // init network capture
     network_stat::init_network_stat_capture()?;
     let glob_conf = config::get_glob_conf().unwrap();
+    // let cluster_name = glob_conf.read().unwrap().get_cluster();
+    // let sensor_name = glob_conf.read().unwrap().get_name();
 
     let monitoring_task = task::spawn(async move {
         let mut kafka_producer = if !glob_conf.read().unwrap().get_dev_flag() {
@@ -303,28 +305,27 @@ async fn main() -> Result<(), DaemonError> {
         let mut connection = redis_client.get_connection().unwrap();
         let mut pubsub = connection.as_pubsub();
 
-        let glob_conf = config::get_glob_conf().unwrap();
-        let cluster_name = glob_conf.read().unwrap().get_cluster();
-        let sensor_name = glob_conf.read().unwrap().get_name();
+        // let glob_conf = config::get_glob_conf().unwrap();
 
         pubsub
-            .subscribe(format!("/update/config/{}/{}", cluster_name, sensor_name))
+            .subscribe(format!("/update/config"))
             .unwrap();
 
         loop {
             let msg = pubsub.get_message().unwrap();
             let payload: String = msg.get_payload().unwrap();
-            match update_glob_conf(config_path.as_str(), payload.as_str()) {
-                Ok((new_sensor_name, new_cluster_name)) => {
-                    pubsub
-                        .unsubscribe(format!("/update/config/{}/{}", cluster_name, sensor_name))
-                        .unwrap();
-                    pubsub
-                        .subscribe(format!(
-                            "/update/config/{}/{}",
-                            new_cluster_name, new_sensor_name
-                        ))
-                        .unwrap();
+            // println!("{}",payload);
+            match update_glob_conf(config_path.clone(), payload) {
+                Ok(()) => {
+                    // pubsub
+                    //     .unsubscribe(format!("/update/config"))
+                    //     .unwrap();
+                    // pubsub
+                    //     .subscribe(format!(
+                    //         "/update/config/{}/{}",
+                    //         new_cluster_name, new_sensor_name
+                    //     ))
+                    //     .unwrap();
                     println!("Config changes")
                 }
                 Err(err) => {

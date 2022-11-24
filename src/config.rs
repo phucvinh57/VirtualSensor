@@ -38,7 +38,7 @@ pub struct MonitorTarget {
 
 // }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct DaemonConfig {
     name: String,
     cluster: String,
@@ -111,20 +111,22 @@ pub fn init_glob_conf(conf_path: &str) -> Result<(), ConfigError> {
     Ok(())
 }
 
-pub fn update_glob_conf(conf_path: &str, conf_text: &str) -> Result<(String, String), ConfigError> {
+pub fn update_glob_conf(conf_path: String, conf_text: String) -> Result<(), ConfigError> {
     let binding = get_glob_conf().unwrap();
     let write = binding.write();
     match write {
         Ok(mut glob_conf) => {
-            let config_in_json: DaemonConfig = serde_json::from_str(conf_text).unwrap();
-            let name = config_in_json.name.clone();
-            let cluster = config_in_json.cluster.clone();
+            println!("{:?}", conf_text);
+
+            let config_in_json: DaemonConfig = serde_json::from_str(conf_text.as_ref()).unwrap();
+            // let name = config_in_json.name.clone();
+            // let cluster = config_in_json.cluster.clone();
             *glob_conf = config_in_json;
         
-            let config_in_toml: toml::Value = serde_json::from_str(conf_text).unwrap();
+            let config_in_toml: toml::Value = serde_json::from_str(conf_text.as_ref()).unwrap();
             let _ = fs::write(conf_path, config_in_toml.to_string());
 
-            Ok((name, cluster))
+            Ok(())
         },
         Err(_) => Err(ConfigError::IncorrectConfig) 
     }
