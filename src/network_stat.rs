@@ -843,7 +843,7 @@ fn capture_thread(thread_data: Arc<Mutex<ThreadData>>) -> Result<(), NetworkStat
             return Ok(());
         }
 
-        match capture.next() {
+        match capture.next_packet() {
             Ok(packet) => {
                 let mut mutex_lock = thread_data.lock()?;
 
