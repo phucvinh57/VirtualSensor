@@ -8,7 +8,7 @@ cpu_to_capture = "1-1024"
 dev_flag = true
 old_kernel = false
 publish_msg_interval = 2
-msg_chunk_size = 2048
+# msg_chunk_size = 2048
 
 [[monitor_targets]]
 container_name = "/"
