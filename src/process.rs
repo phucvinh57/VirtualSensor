@@ -1110,6 +1110,7 @@ pub fn get_real_proc(
         Pid::new(0)
     } else {
         let pids = lines[12].split_whitespace().collect::<Vec<&str>>();
+        println!("{:?}", pids);
         Pid::try_from(pids[pids.len() - 1]).unwrap()
     };
 
