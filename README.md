@@ -24,10 +24,16 @@ Second, build a project to binary executable file named `sensor`:
 make build
 ```
 
-Finally, run `sensor` with root permission and a config file.
+Third, copy `.env.example` to `.env` then modify redis/kafka connection url.
+
+```bash
+cp .env.example .env
+```
+
+Finally, run `sensor` with root permission and a config file. If config file's path is not specified, `config.toml` is selected as default.
 
 ```make
-sudo ./sensor <Your config file.toml>
+./sensor [:Your config file.toml>]
 ```
 
 You can use `SampleConfig.toml` as a config template.
