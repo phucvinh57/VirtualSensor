@@ -1,12 +1,12 @@
 mod common;
-mod setting;
 mod netlink;
 mod network_stat;
 mod process;
+mod setting;
 mod taskstat;
-use setting::update_glob_conf;
 use kafka::producer::{Producer, Record, RequiredAcks};
 use serde::Serialize;
+use setting::update_glob_conf;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::{task, time};
 
@@ -22,9 +22,9 @@ extern crate lazy_static;
 
 use process::iterate_proc_tree;
 
-use crate::setting::ConfigError;
 use crate::network_stat::{NetworkRawStat, NetworkStatError};
 use crate::process::{Pid, ProcessError};
+use crate::setting::ConfigError;
 use crate::taskstat::{TaskStatsConnection, TaskStatsError};
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -121,7 +121,7 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
     total_stat.network_rawstat = network_stat::get_network_rawstat()?;
 
     // get global config
-    let borrowing = setting::get_glob_conf().unwrap();
+    let borrowing = setting::get_glob_conf()?;
     let glob_conf = borrowing.read().unwrap();
 
     // for each monitor target
@@ -269,12 +269,10 @@ async fn main() -> Result<(), DaemonError> {
     };
 
     setting::init_glob_conf(config_path.as_str())?;
-
-    // init network capture
     network_stat::init_network_stat_capture()?;
-    let glob_conf = setting::get_glob_conf().unwrap();
 
     let monitoring_task = task::spawn(async move {
+        let glob_conf = setting::get_glob_conf().unwrap();
         let mut kafka_producer = if !glob_conf.read().unwrap().get_dev_flag() {
             Some(
                 Producer::from_hosts(vec![kafka_connection_url])
@@ -300,23 +298,13 @@ async fn main() -> Result<(), DaemonError> {
         let redis_client = redis::Client::open(redis_connection_url).unwrap();
         let mut connection = redis_client.get_connection().unwrap();
         let mut pubsub = connection.as_pubsub();
-
-        pubsub.subscribe(format!("/update/config")).unwrap();
+        pubsub.subscribe(format!("/update/config/1915940")).unwrap();
 
         loop {
             let msg = pubsub.get_message().unwrap();
             let payload: String = msg.get_payload().unwrap();
             match update_glob_conf(config_path.clone(), payload) {
                 Ok(()) => {
-                    // pubsub
-                    //     .unsubscribe(format!("/update/config"))
-                    //     .unwrap();
-                    // pubsub
-                    //     .subscribe(format!(
-                    //         "/update/config/{}/{}",
-                    //         new_cluster_name, new_sensor_name
-                    //     ))
-                    //     .unwrap();
                     println!("Config changes")
                 }
                 Err(err) => {

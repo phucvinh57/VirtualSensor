@@ -1,5 +1,5 @@
 build:
-	cargo build
+	LIBPCAP_LIBDIR=$(shell pwd)/lib cargo build
 	cp target/debug/virtual_sensor ./sensor
 
 release:

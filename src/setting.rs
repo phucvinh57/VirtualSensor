@@ -9,7 +9,6 @@ use serde::{Deserialize, Deserializer};
 use serde_json;
 use toml;
 
-// use crate::common::Timestamp;
 use crate::process::Pid;
 
 use filter::Filter;
