@@ -1,10 +1,10 @@
 mod common;
-mod naive_config;
+mod setting;
 mod netlink;
 mod network_stat;
 mod process;
 mod taskstat;
-use naive_config::update_glob_conf;
+use setting::update_glob_conf;
 use kafka::producer::{Producer, Record, RequiredAcks};
 use serde::Serialize;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -22,7 +22,7 @@ extern crate lazy_static;
 
 use process::iterate_proc_tree;
 
-use crate::naive_config::ConfigError;
+use crate::setting::ConfigError;
 use crate::network_stat::{NetworkRawStat, NetworkStatError};
 use crate::process::{Pid, ProcessError};
 use crate::taskstat::{TaskStatsConnection, TaskStatsError};
@@ -64,7 +64,7 @@ pub struct TotalStat {
     container_stats: Vec<ContainerStat>,
     network_rawstat: NetworkRawStat,
 
-    #[serde(skip_serializing_if = "naive_config::has_unix_timestamp")]
+    #[serde(skip_serializing_if = "setting::has_unix_timestamp")]
     unix_timestamp: u64, // in seconds
 }
 
@@ -121,7 +121,7 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
     total_stat.network_rawstat = network_stat::get_network_rawstat()?;
 
     // get global config
-    let borrowing = naive_config::get_glob_conf().unwrap();
+    let borrowing = setting::get_glob_conf().unwrap();
     let glob_conf = borrowing.read().unwrap();
 
     // for each monitor target
@@ -268,11 +268,11 @@ async fn main() -> Result<(), DaemonError> {
         "config.toml".to_owned()
     };
 
-    naive_config::init_glob_conf(config_path.as_str())?;
+    setting::init_glob_conf(config_path.as_str())?;
 
     // init network capture
     network_stat::init_network_stat_capture()?;
-    let glob_conf = naive_config::get_glob_conf().unwrap();
+    let glob_conf = setting::get_glob_conf().unwrap();
 
     let monitoring_task = task::spawn(async move {
         let mut kafka_producer = if !glob_conf.read().unwrap().get_dev_flag() {

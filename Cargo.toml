@@ -24,4 +24,3 @@ openssl = { version = "0.10.35", features = ["vendored"] }
 toml = "0.5.9"
 redis = "0.22.1"
 dotenv = "0.15.0"
-config = "0.13.2"

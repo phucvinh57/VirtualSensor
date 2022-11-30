@@ -6,7 +6,7 @@ use std::{fmt, fs, io};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::common::{CommonError, Count, DataCount, Gid, Inode, TimeCount, Timestamp, Uid};
-use crate::naive_config;
+use crate::setting;
 use crate::network_stat::{Connection, NetworkRawStat, UniConnection, UniConnectionStat};
 use crate::taskstat::{TaskStatsConnection, TaskStatsError};
 
@@ -183,34 +183,34 @@ impl AddAssign<Self> for ConnectionStat {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct InterfaceStat {
-    #[serde(skip_serializing_if = "naive_config::has_process_istat_iname")]
+    #[serde(skip_serializing_if = "setting::has_process_istat_iname")]
     iname: String,
 
     // packet count
-    #[serde(skip_serializing_if = "naive_config::has_process_istat_packet_sent")]
+    #[serde(skip_serializing_if = "setting::has_process_istat_packet_sent")]
     packet_sent: Count,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_istat_packet_recv")]
+    #[serde(skip_serializing_if = "setting::has_process_istat_packet_recv")]
     packet_recv: Count,
 
     // data count in link layer
-    #[serde(skip_serializing_if = "naive_config::has_process_istat_total_data_sent")]
+    #[serde(skip_serializing_if = "setting::has_process_istat_total_data_sent")]
     total_data_sent: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_istat_total_data_recv")]
+    #[serde(skip_serializing_if = "setting::has_process_istat_total_data_recv")]
     total_data_recv: DataCount,
 
     // data count in higher level
-    #[serde(skip_serializing_if = "naive_config::has_process_istat_real_data_sent")]
+    #[serde(skip_serializing_if = "setting::has_process_istat_real_data_sent")]
     real_data_sent: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_istat_real_data_recv")]
+    #[serde(skip_serializing_if = "setting::has_process_istat_real_data_recv")]
     real_data_recv: DataCount,
 
     // map from Connection to ConnectionStat
     #[serde(
         serialize_with = "get_interface_stat_conn_stats_serialize",
-        skip_serializing_if = "naive_config::has_process_istat_connection_stats"
+        skip_serializing_if = "setting::has_process_istat_connection_stats"
     )]
     connection_stats: HashMap<Connection, ConnectionStat>,
 }
@@ -325,24 +325,24 @@ fn get_interface_stat_conn_stats_serialize<S: Serializer>(
 #[derive(Debug, Clone, Serialize)]
 pub struct NetworkStat {
     // packet count
-    #[serde(skip_serializing_if = "naive_config::has_process_netstat_pack_sent")]
+    #[serde(skip_serializing_if = "setting::has_process_netstat_pack_sent")]
     pack_sent: Count,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_netstat_pack_recv")]
+    #[serde(skip_serializing_if = "setting::has_process_netstat_pack_recv")]
     pack_recv: Count,
 
     // data count in link layer
-    #[serde(skip_serializing_if = "naive_config::has_process_netstat_total_data_sent")]
+    #[serde(skip_serializing_if = "setting::has_process_netstat_total_data_sent")]
     total_data_sent: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_netstat_total_data_recv")]
+    #[serde(skip_serializing_if = "setting::has_process_netstat_total_data_recv")]
     total_data_recv: DataCount,
 
     // data count in higher level
-    #[serde(skip_serializing_if = "naive_config::has_process_netstat_real_data_sent")]
+    #[serde(skip_serializing_if = "setting::has_process_netstat_real_data_sent")]
     real_data_sent: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_netstat_real_data_recv")]
+    #[serde(skip_serializing_if = "setting::has_process_netstat_real_data_recv")]
     real_data_recv: DataCount,
 
     // map from InterfaceName to InterfaceStat
@@ -451,28 +451,28 @@ fn get_netstat_interface_stats_serialize<S: Serializer>(
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct ThreadStat {
-    #[serde(skip_serializing_if = "naive_config::has_thread_stat_timestamp")]
+    #[serde(skip_serializing_if = "setting::has_thread_stat_timestamp")]
     timestamp: Timestamp,
 
-    #[serde(skip_serializing_if = "naive_config::has_thread_stat_total_system_cpu_time")]
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_system_cpu_time")]
     total_system_cpu_time: TimeCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_thread_stat_total_user_cpu_time")]
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_user_cpu_time")]
     total_user_cpu_time: TimeCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_thread_stat_total_cpu_time")]
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_cpu_time")]
     total_cpu_time: TimeCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_thread_stat_total_io_read")]
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_io_read")]
     total_io_read: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_thread_stat_total_io_write")]
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_io_write")]
     total_io_write: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_thread_stat_total_block_io_read")]
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_block_io_read")]
     total_block_io_read: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_thread_stat_total_block_io_write")]
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_block_io_write")]
     total_block_io_write: DataCount,
 }
 
@@ -520,37 +520,37 @@ impl ThreadStat {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ProcessStat {
-    #[serde(skip_serializing_if = "naive_config::has_process_stat_timestamp")]
+    #[serde(skip_serializing_if = "setting::has_process_stat_timestamp")]
     timestamp: Timestamp,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_stat_total_system_cpu_time")]
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_system_cpu_time")]
     total_system_cpu_time: TimeCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_stat_total_user_cpu_time")]
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_user_cpu_time")]
     total_user_cpu_time: TimeCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_stat_total_cpu_time")]
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_cpu_time")]
     total_cpu_time: TimeCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_stat_total_rss")]
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_rss")]
     total_rss: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_stat_total_vss")]
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_vss")]
     total_vss: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_stat_total_swap")]
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_swap")]
     total_swap: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_stat_total_io_read")]
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_io_read")]
     total_io_read: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_stat_total_io_write")]
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_io_write")]
     total_io_write: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_stat_total_block_io_read")]
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_block_io_read")]
     total_block_io_read: DataCount,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_stat_total_block_io_write")]
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_block_io_write")]
     total_block_io_write: DataCount,
 
     netstat: NetworkStat,
@@ -669,17 +669,17 @@ impl AddAssign<ThreadStat> for ProcessStat {
 #[derive(Debug, Clone, Serialize)]
 pub struct Thread {
     // ids inside namespace
-    #[serde(skip_serializing_if = "naive_config::has_thread_tid")]
+    #[serde(skip_serializing_if = "setting::has_thread_tid")]
     tid: Tid,
 
-    #[serde(skip_serializing_if = "naive_config::has_thread_pid")]
+    #[serde(skip_serializing_if = "setting::has_thread_pid")]
     pid: Pid,
 
     // ids outside namespace
-    #[serde(skip_serializing_if = "naive_config::has_thread_real_tid")]
+    #[serde(skip_serializing_if = "setting::has_thread_real_tid")]
     real_tid: Tid,
 
-    #[serde(skip_serializing_if = "naive_config::has_thread_real_pid")]
+    #[serde(skip_serializing_if = "setting::has_thread_real_pid")]
     real_pid: Pid,
 
     // this thread stat
@@ -723,71 +723,71 @@ impl Thread {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Process {
-    #[serde(skip_serializing_if = "naive_config::has_process_pid")]
+    #[serde(skip_serializing_if = "setting::has_process_pid")]
     pid: Pid, // Must have
 
-    #[serde(skip_serializing_if = "naive_config::has_process_parent_pid")]
+    #[serde(skip_serializing_if = "setting::has_process_parent_pid")]
     parent_pid: Pid, // Must have
 
-    #[serde(skip_serializing_if = "naive_config::has_process_uid")]
+    #[serde(skip_serializing_if = "setting::has_process_uid")]
     uid: Uid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_effective_uid")]
+    #[serde(skip_serializing_if = "setting::has_process_effective_uid")]
     effective_uid: Uid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_saved_uid")]
+    #[serde(skip_serializing_if = "setting::has_process_saved_uid")]
     saved_uid: Uid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_fs_uid")]
+    #[serde(skip_serializing_if = "setting::has_process_fs_uid")]
     fs_uid: Uid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_gid")]
+    #[serde(skip_serializing_if = "setting::has_process_gid")]
     gid: Gid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_effective_gid")]
+    #[serde(skip_serializing_if = "setting::has_process_effective_gid")]
     effective_gid: Gid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_saved_gid")]
+    #[serde(skip_serializing_if = "setting::has_process_saved_gid")]
     saved_gid: Gid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_fs_gid")]
+    #[serde(skip_serializing_if = "setting::has_process_fs_gid")]
     fs_gid: Gid,
 
     // ids outside namespace
-    #[serde(skip_serializing_if = "naive_config::has_process_real_pid")]
+    #[serde(skip_serializing_if = "setting::has_process_real_pid")]
     real_pid: Pid, // Must have
 
-    #[serde(skip_serializing_if = "naive_config::has_process_real_parent_pid")]
+    #[serde(skip_serializing_if = "setting::has_process_real_parent_pid")]
     real_parent_pid: Pid, // Must have
 
-    #[serde(skip_serializing_if = "naive_config::has_process_real_uid")]
+    #[serde(skip_serializing_if = "setting::has_process_real_uid")]
     real_uid: Uid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_real_effective_uid")]
+    #[serde(skip_serializing_if = "setting::has_process_real_effective_uid")]
     real_effective_uid: Uid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_real_saved_uid")]
+    #[serde(skip_serializing_if = "setting::has_process_real_saved_uid")]
     real_saved_uid: Uid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_real_fs_uid")]
+    #[serde(skip_serializing_if = "setting::has_process_real_fs_uid")]
     real_fs_uid: Uid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_real_gid")]
+    #[serde(skip_serializing_if = "setting::has_process_real_gid")]
     real_gid: Gid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_real_effective_gid")]
+    #[serde(skip_serializing_if = "setting::has_process_real_effective_gid")]
     real_effective_gid: Gid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_real_saved_gid")]
+    #[serde(skip_serializing_if = "setting::has_process_real_saved_gid")]
     real_saved_gid: Gid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_real_fs_gid")]
+    #[serde(skip_serializing_if = "setting::has_process_real_fs_gid")]
     real_fs_gid: Gid,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_exec_path")]
+    #[serde(skip_serializing_if = "setting::has_process_exec_path")]
     exec_path: String,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_command")]
+    #[serde(skip_serializing_if = "setting::has_process_command")]
     command: String,
 
     // accumulated thread stat of all threads of this process
@@ -796,7 +796,7 @@ pub struct Process {
     // list of all threads
     threads: Vec<Thread>,
 
-    #[serde(skip_serializing_if = "naive_config::has_process_child_real_pid_list")]
+    #[serde(skip_serializing_if = "setting::has_process_child_real_pid_list")]
     child_real_pid_list: Vec<Pid>,
 }
 
@@ -1102,7 +1102,7 @@ pub fn get_real_proc(
     let lines: Vec<&str> = status_file_content.lines().collect();
 
     // get global config
-    let binding = naive_config::get_glob_conf().unwrap();
+    let binding = setting::get_glob_conf().unwrap();
     let glob_conf = binding.read().unwrap();
 
     // get pid
