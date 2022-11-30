@@ -11,8 +11,8 @@ use pcap::{Capture, Device, Packet, Precision};
 use serde::{Serialize, Serializer};
 
 use crate::common::{self, CommonError, Count, DataCount, Endian, Inode};
-use crate::config::{self, ConfigError};
-use crate::config::{
+use crate::naive_config::{self, ConfigError};
+use crate::naive_config::{
     has_irawstat_description, has_irawstat_iname, has_irawstat_uni_connection_stats,
 };
 
@@ -497,7 +497,7 @@ fn control_thread(
     loop {
         // check if someone want to get data
         match ctrl_data_in_read_end.recv_timeout(
-            config::get_glob_conf()?
+            naive_config::get_glob_conf()?
                 .read()?
                 .get_control_command_receive_timeout(),
         ) {
@@ -818,14 +818,14 @@ fn capture_thread(thread_data: Arc<Mutex<ThreadData>>) -> Result<(), NetworkStat
 
     let mut capture = Capture::from_device(device)?
         .snaplen(
-            config::get_glob_conf()?
+            naive_config::get_glob_conf()?
                 .read()?
                 .get_capture_size_limit()
                 .try_into()
                 .unwrap(),
         )
         .timeout(
-            config::get_glob_conf()?
+            naive_config::get_glob_conf()?
                 .read()?
                 .get_capture_thread_receive_timeout()
                 .as_millis()

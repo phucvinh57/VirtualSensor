@@ -21,22 +21,6 @@ pub struct MonitorTarget {
     pub container_name: String,
     pub pid_list: Vec<Pid>,
 }
-// #[derive(Deserialize)]
-// pub struct SensorInfo {
-//     id: String,
-//     name: String,
-//     cluster: String,
-
-//     #[serde(skip_serializing_if = "Option::is_none")]
-//     active: Option<bool>,
-//     updatedAt: Timestamp,
-
-//     config: DaemonConfig
-// }
-
-// impl SensorInfo {
-
-// }
 
 #[derive(Debug, Deserialize)]
 pub struct DaemonConfig {
@@ -119,8 +103,6 @@ pub fn update_glob_conf(conf_path: String, conf_text: String) -> Result<(), Conf
             println!("{:?}", conf_text);
 
             let config_in_json: DaemonConfig = serde_json::from_str(conf_text.as_ref()).unwrap();
-            // let name = config_in_json.name.clone();
-            // let cluster = config_in_json.cluster.clone();
             *glob_conf = config_in_json;
         
             let config_in_toml: toml::Value = serde_json::from_str(conf_text.as_ref()).unwrap();

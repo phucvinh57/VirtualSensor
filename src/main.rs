@@ -1,10 +1,10 @@
 mod common;
-mod config;
+mod naive_config;
 mod netlink;
 mod network_stat;
 mod process;
 mod taskstat;
-use config::update_glob_conf;
+use naive_config::update_glob_conf;
 use kafka::producer::{Producer, Record, RequiredAcks};
 use serde::Serialize;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -22,7 +22,7 @@ extern crate lazy_static;
 
 use process::iterate_proc_tree;
 
-use crate::config::ConfigError;
+use crate::naive_config::ConfigError;
 use crate::network_stat::{NetworkRawStat, NetworkStatError};
 use crate::process::{Pid, ProcessError};
 use crate::taskstat::{TaskStatsConnection, TaskStatsError};
@@ -64,7 +64,7 @@ pub struct TotalStat {
     container_stats: Vec<ContainerStat>,
     network_rawstat: NetworkRawStat,
 
-    #[serde(skip_serializing_if = "config::has_unix_timestamp")]
+    #[serde(skip_serializing_if = "naive_config::has_unix_timestamp")]
     unix_timestamp: u64, // in seconds
 }
 
@@ -121,10 +121,11 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
     total_stat.network_rawstat = network_stat::get_network_rawstat()?;
 
     // get global config
-    let glob_conf = config::get_glob_conf().unwrap();
+    let borrowing = naive_config::get_glob_conf().unwrap();
+    let glob_conf = borrowing.read().unwrap();
 
     // for each monitor target
-    'monitorLoop: for monitor_target in &glob_conf.read().unwrap().get_monitor_targets() {
+    'monitorLoop: for monitor_target in &glob_conf.get_monitor_targets() {
         // get needed process list
         let real_pid_list = if monitor_target.container_name != "/" {
             let mut result = Vec::new();
@@ -147,7 +148,7 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
                 // get that process pid
                 let real_pid = Pid::new(line.split_whitespace().collect::<Vec<&str>>()[1].parse()?);
 
-                if glob_conf.read().unwrap().is_old_kernel() {
+                if glob_conf.is_old_kernel() {
                     result.push(real_pid);
                     continue;
                 }
@@ -205,8 +206,8 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
 
     // return result
 
-    let dev_flag = glob_conf.read().unwrap().get_dev_flag();
-    let message_chunk_size = glob_conf.read().unwrap().get_message_chunk_size();
+    let dev_flag = glob_conf.get_dev_flag();
+    let message_chunk_size = glob_conf.get_message_chunk_size();
     let results_as_str = serde_json::to_string(&total_stat).unwrap();
     let messages = if let Some(size) = message_chunk_size {
         results_as_str
@@ -220,8 +221,8 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
     };
 
     let mut i = 0;
-    let cluster_name = glob_conf.read().unwrap().get_cluster();
-    let sensor_name = glob_conf.read().unwrap().get_name();
+    let cluster_name = glob_conf.get_cluster();
+    let sensor_name = glob_conf.get_name();
 
     for message in messages.iter() {
         let msg_chunk = MessageChunk::new(
@@ -255,9 +256,6 @@ async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<()
 
 #[tokio::main]
 async fn main() -> Result<(), DaemonError> {
-    // init config
-    // let is_changed_config = Arc::new(Mutex::new(false));
-
     dotenv().ok();
     let redis_connection_url =
         std::env::var("REDIS_CONNECTION_URL").expect("REDIS_CONNECTION_URL must be set.");
@@ -270,13 +268,11 @@ async fn main() -> Result<(), DaemonError> {
         "config.toml".to_owned()
     };
 
-    config::init_glob_conf(config_path.as_str())?;
+    naive_config::init_glob_conf(config_path.as_str())?;
 
     // init network capture
     network_stat::init_network_stat_capture()?;
-    let glob_conf = config::get_glob_conf().unwrap();
-    // let cluster_name = glob_conf.read().unwrap().get_cluster();
-    // let sensor_name = glob_conf.read().unwrap().get_name();
+    let glob_conf = naive_config::get_glob_conf().unwrap();
 
     let monitoring_task = task::spawn(async move {
         let mut kafka_producer = if !glob_conf.read().unwrap().get_dev_flag() {
@@ -305,16 +301,11 @@ async fn main() -> Result<(), DaemonError> {
         let mut connection = redis_client.get_connection().unwrap();
         let mut pubsub = connection.as_pubsub();
 
-        // let glob_conf = config::get_glob_conf().unwrap();
-
-        pubsub
-            .subscribe(format!("/update/config"))
-            .unwrap();
+        pubsub.subscribe(format!("/update/config")).unwrap();
 
         loop {
             let msg = pubsub.get_message().unwrap();
             let payload: String = msg.get_payload().unwrap();
-            // println!("{}",payload);
             match update_glob_conf(config_path.clone(), payload) {
                 Ok(()) => {
                     // pubsub
