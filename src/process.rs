@@ -6,7 +6,7 @@ use std::{fmt, fs, io};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::common::{CommonError, Count, DataCount, Gid, Inode, TimeCount, Timestamp, Uid};
-use crate::config;
+use crate::setting;
 use crate::network_stat::{Connection, NetworkRawStat, UniConnection, UniConnectionStat};
 use crate::taskstat::{TaskStatsConnection, TaskStatsError};
 
@@ -183,23 +183,36 @@ impl AddAssign<Self> for ConnectionStat {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct InterfaceStat {
+    #[serde(skip_serializing_if = "setting::has_process_istat_iname")]
     iname: String,
 
     // packet count
-    pack_sent: Count,
+    #[serde(skip_serializing_if = "setting::has_process_istat_packet_sent")]
+    packet_sent: Count,
+
+    #[serde(skip_serializing_if = "setting::has_process_istat_packet_recv")]
     packet_recv: Count,
 
     // data count in link layer
+    #[serde(skip_serializing_if = "setting::has_process_istat_total_data_sent")]
     total_data_sent: DataCount,
+
+    #[serde(skip_serializing_if = "setting::has_process_istat_total_data_recv")]
     total_data_recv: DataCount,
 
     // data count in higher level
+    #[serde(skip_serializing_if = "setting::has_process_istat_real_data_sent")]
     real_data_sent: DataCount,
+
+    #[serde(skip_serializing_if = "setting::has_process_istat_real_data_recv")]
     real_data_recv: DataCount,
 
     // map from Connection to ConnectionStat
-    #[serde(serialize_with = "get_interface_stat_conn_stats_serialize")]
-    conn_stats: HashMap<Connection, ConnectionStat>,
+    #[serde(
+        serialize_with = "get_interface_stat_conn_stats_serialize",
+        skip_serializing_if = "setting::has_process_istat_connection_stats"
+    )]
+    connection_stats: HashMap<Connection, ConnectionStat>,
 }
 
 #[allow(unused)]
@@ -208,7 +221,7 @@ impl InterfaceStat {
         Self {
             iname: String::from(iname),
 
-            pack_sent: Count::new(0),
+            packet_sent: Count::new(0),
             packet_recv: Count::new(0),
 
             total_data_sent: DataCount::from_byte(0),
@@ -217,7 +230,7 @@ impl InterfaceStat {
             real_data_sent: DataCount::from_byte(0),
             real_data_recv: DataCount::from_byte(0),
 
-            conn_stats: HashMap::new(),
+            connection_stats: HashMap::new(),
         }
     }
 
@@ -225,8 +238,8 @@ impl InterfaceStat {
         self.iname.clone()
     }
 
-    pub fn add_conn_stat(&mut self, conn_stat: ConnectionStat) {
-        self.pack_sent += conn_stat.get_pack_sent();
+    pub fn add_connection_stat(&mut self, conn_stat: ConnectionStat) {
+        self.packet_sent += conn_stat.get_pack_sent();
         self.packet_recv += conn_stat.get_pack_recv();
 
         self.total_data_sent += conn_stat.get_total_data_sent();
@@ -235,7 +248,7 @@ impl InterfaceStat {
         self.real_data_sent += conn_stat.get_real_data_sent();
         self.real_data_recv += conn_stat.get_real_data_recv();
 
-        self.conn_stats
+        self.connection_stats
             .insert(conn_stat.get_connection(), conn_stat);
     }
 }
@@ -251,7 +264,7 @@ impl Add<Self> for InterfaceStat {
 
         let mut result = Self::new(&self.iname);
 
-        result.pack_sent = self.pack_sent + other.pack_sent;
+        result.packet_sent = self.packet_sent + other.packet_sent;
         result.packet_recv = self.packet_recv + other.packet_recv;
 
         result.total_data_sent = self.total_data_sent + other.total_data_sent;
@@ -261,13 +274,13 @@ impl Add<Self> for InterfaceStat {
         result.real_data_recv = self.real_data_recv + other.real_data_recv;
 
         // merge connectionStats
-        result.conn_stats = self.conn_stats;
+        result.connection_stats = self.connection_stats;
 
-        for (other_conn, other_conn_stat) in other.conn_stats {
-            if let Some(conn_stat) = result.conn_stats.get_mut(&other_conn) {
+        for (other_conn, other_conn_stat) in other.connection_stats {
+            if let Some(conn_stat) = result.connection_stats.get_mut(&other_conn) {
                 *conn_stat += other_conn_stat;
             } else {
-                result.conn_stats.insert(other_conn, other_conn_stat);
+                result.connection_stats.insert(other_conn, other_conn_stat);
             }
         }
 
@@ -282,7 +295,7 @@ impl AddAssign<Self> for InterfaceStat {
             "Can't add different interface stats!"
         );
 
-        self.pack_sent += other.pack_sent;
+        self.packet_sent += other.packet_sent;
         self.packet_recv += other.packet_recv;
 
         self.total_data_sent += other.total_data_sent;
@@ -292,11 +305,11 @@ impl AddAssign<Self> for InterfaceStat {
         self.real_data_recv += other.real_data_recv;
 
         // merge connectionStats
-        for (other_conn, other_conn_stat) in other.conn_stats {
-            if let Some(conn_stat) = self.conn_stats.get_mut(&other_conn) {
+        for (other_conn, other_conn_stat) in other.connection_stats {
+            if let Some(conn_stat) = self.connection_stats.get_mut(&other_conn) {
                 *conn_stat += other_conn_stat;
             } else {
-                self.conn_stats.insert(other_conn, other_conn_stat);
+                self.connection_stats.insert(other_conn, other_conn_stat);
             }
         }
     }
@@ -312,15 +325,24 @@ fn get_interface_stat_conn_stats_serialize<S: Serializer>(
 #[derive(Debug, Clone, Serialize)]
 pub struct NetworkStat {
     // packet count
+    #[serde(skip_serializing_if = "setting::has_process_netstat_pack_sent")]
     pack_sent: Count,
+
+    #[serde(skip_serializing_if = "setting::has_process_netstat_pack_recv")]
     pack_recv: Count,
 
     // data count in link layer
+    #[serde(skip_serializing_if = "setting::has_process_netstat_total_data_sent")]
     total_data_sent: DataCount,
+
+    #[serde(skip_serializing_if = "setting::has_process_netstat_total_data_recv")]
     total_data_recv: DataCount,
 
     // data count in higher level
+    #[serde(skip_serializing_if = "setting::has_process_netstat_real_data_sent")]
     real_data_sent: DataCount,
+
+    #[serde(skip_serializing_if = "setting::has_process_netstat_real_data_recv")]
     real_data_recv: DataCount,
 
     // map from InterfaceName to InterfaceStat
@@ -344,7 +366,7 @@ impl NetworkStat {
         }
     }
 
-    pub fn add_conn_stat(&mut self, iname: &str, conn_stat: ConnectionStat) {
+    pub fn add_connection_stat(&mut self, iname: &str, conn_stat: ConnectionStat) {
         self.pack_sent += conn_stat.get_pack_sent();
         self.pack_recv += conn_stat.get_pack_recv();
 
@@ -364,7 +386,7 @@ impl NetworkStat {
         self.interface_stats
             .get_mut(iname)
             .unwrap()
-            .add_conn_stat(conn_stat);
+            .add_connection_stat(conn_stat);
     }
 }
 
@@ -429,16 +451,28 @@ fn get_netstat_interface_stats_serialize<S: Serializer>(
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct ThreadStat {
+    #[serde(skip_serializing_if = "setting::has_thread_stat_timestamp")]
     timestamp: Timestamp,
 
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_system_cpu_time")]
     total_system_cpu_time: TimeCount,
+
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_user_cpu_time")]
     total_user_cpu_time: TimeCount,
+
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_cpu_time")]
     total_cpu_time: TimeCount,
 
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_io_read")]
     total_io_read: DataCount,
+
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_io_write")]
     total_io_write: DataCount,
 
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_block_io_read")]
     total_block_io_read: DataCount,
+
+    #[serde(skip_serializing_if = "setting::has_thread_stat_total_block_io_write")]
     total_block_io_write: DataCount,
 }
 
@@ -486,20 +520,37 @@ impl ThreadStat {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ProcessStat {
+    #[serde(skip_serializing_if = "setting::has_process_stat_timestamp")]
     timestamp: Timestamp,
 
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_system_cpu_time")]
     total_system_cpu_time: TimeCount,
+
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_user_cpu_time")]
     total_user_cpu_time: TimeCount,
+
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_cpu_time")]
     total_cpu_time: TimeCount,
 
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_rss")]
     total_rss: DataCount,
+
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_vss")]
     total_vss: DataCount,
+
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_swap")]
     total_swap: DataCount,
 
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_io_read")]
     total_io_read: DataCount,
+
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_io_write")]
     total_io_write: DataCount,
 
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_block_io_read")]
     total_block_io_read: DataCount,
+
+    #[serde(skip_serializing_if = "setting::has_process_stat_total_block_io_write")]
     total_block_io_write: DataCount,
 
     netstat: NetworkStat,
@@ -618,11 +669,17 @@ impl AddAssign<ThreadStat> for ProcessStat {
 #[derive(Debug, Clone, Serialize)]
 pub struct Thread {
     // ids inside namespace
+    #[serde(skip_serializing_if = "setting::has_thread_tid")]
     tid: Tid,
+
+    #[serde(skip_serializing_if = "setting::has_thread_pid")]
     pid: Pid,
 
     // ids outside namespace
+    #[serde(skip_serializing_if = "setting::has_thread_real_tid")]
     real_tid: Tid,
+
+    #[serde(skip_serializing_if = "setting::has_thread_real_pid")]
     real_pid: Pid,
 
     // this thread stat
@@ -664,51 +721,73 @@ impl Thread {
     }
 }
 
-// TODO: Add new version of process
 #[derive(Debug, Clone, Serialize)]
 pub struct Process {
-    pid: Pid,        // Must have
+    #[serde(skip_serializing_if = "setting::has_process_pid")]
+    pid: Pid, // Must have
+
+    #[serde(skip_serializing_if = "setting::has_process_parent_pid")]
     parent_pid: Pid, // Must have
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    uid: Option<Uid>,
+    #[serde(skip_serializing_if = "setting::has_process_uid")]
+    uid: Uid,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    effective_uid: Option<Uid>,
+    #[serde(skip_serializing_if = "setting::has_process_effective_uid")]
+    effective_uid: Uid,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    saved_uid: Option<Uid>,
+    #[serde(skip_serializing_if = "setting::has_process_saved_uid")]
+    saved_uid: Uid,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    fs_uid: Option<Uid>,
+    #[serde(skip_serializing_if = "setting::has_process_fs_uid")]
+    fs_uid: Uid,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    gid: Option<Gid>,
+    #[serde(skip_serializing_if = "setting::has_process_gid")]
+    gid: Gid,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    effective_gid: Option<Gid>,
+    #[serde(skip_serializing_if = "setting::has_process_effective_gid")]
+    effective_gid: Gid,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    saved_gid: Option<Gid>,
+    #[serde(skip_serializing_if = "setting::has_process_saved_gid")]
+    saved_gid: Gid,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    fs_gid: Option<Gid>,
+    #[serde(skip_serializing_if = "setting::has_process_fs_gid")]
+    fs_gid: Gid,
 
     // ids outside namespace
+    #[serde(skip_serializing_if = "setting::has_process_real_pid")]
     real_pid: Pid, // Must have
+
+    #[serde(skip_serializing_if = "setting::has_process_real_parent_pid")]
     real_parent_pid: Pid, // Must have
 
+    #[serde(skip_serializing_if = "setting::has_process_real_uid")]
     real_uid: Uid,
+
+    #[serde(skip_serializing_if = "setting::has_process_real_effective_uid")]
     real_effective_uid: Uid,
+
+    #[serde(skip_serializing_if = "setting::has_process_real_saved_uid")]
     real_saved_uid: Uid,
+
+    #[serde(skip_serializing_if = "setting::has_process_real_fs_uid")]
     real_fs_uid: Uid,
 
+    #[serde(skip_serializing_if = "setting::has_process_real_gid")]
     real_gid: Gid,
+
+    #[serde(skip_serializing_if = "setting::has_process_real_effective_gid")]
     real_effective_gid: Gid,
+
+    #[serde(skip_serializing_if = "setting::has_process_real_saved_gid")]
     real_saved_gid: Gid,
+
+    #[serde(skip_serializing_if = "setting::has_process_real_fs_gid")]
     real_fs_gid: Gid,
 
+    #[serde(skip_serializing_if = "setting::has_process_exec_path")]
     exec_path: String,
+
+    #[serde(skip_serializing_if = "setting::has_process_command")]
     command: String,
 
     // accumulated thread stat of all threads of this process
@@ -717,6 +796,7 @@ pub struct Process {
     // list of all threads
     threads: Vec<Thread>,
 
+    #[serde(skip_serializing_if = "setting::has_process_child_real_pid_list")]
     child_real_pid_list: Vec<Pid>,
 }
 
@@ -724,14 +804,14 @@ impl Process {
     pub fn new(
         pid: Pid,
         parent_pid: Pid,
-        uid: Option<Uid>,
-        effective_uid: Option<Uid>,
-        saved_uid: Option<Uid>,
-        fs_uid: Option<Uid>,
-        gid: Option<Gid>,
-        effective_gid: Option<Gid>,
-        saved_gid: Option<Gid>,
-        fs_gid: Option<Gid>,
+        uid: Uid,
+        effective_uid: Uid,
+        saved_uid: Uid,
+        fs_uid: Uid,
+        gid: Gid,
+        effective_gid: Gid,
+        saved_gid: Gid,
+        fs_gid: Gid,
         real_pid: Pid,
         real_parent_pid: Pid,
         real_uid: Uid,
@@ -1022,13 +1102,15 @@ pub fn get_real_proc(
     let lines: Vec<&str> = status_file_content.lines().collect();
 
     // get global config
-    let glob_conf = config::get_glob_conf().unwrap();
+    let binding = setting::get_glob_conf().unwrap();
+    let glob_conf = binding.read().unwrap();
 
     // get pid
     let pid = if glob_conf.is_old_kernel() {
         Pid::new(0)
     } else {
         let pids = lines[12].split_whitespace().collect::<Vec<&str>>();
+        println!("{:?}", lines);
         Pid::try_from(pids[pids.len() - 1]).unwrap()
     };
 
@@ -1080,20 +1162,16 @@ pub fn get_real_proc(
         GidMap::try_from(fs::read_to_string(format!("/proc/{}/gid_map", real_pid))?.as_str())?;
 
     // map every real id to id
-    let uid = if true {
-        Some(uid_map.map_to_uid(real_uid).unwrap())
-    } else {
-        None
-    };
+    let uid = uid_map.map_to_uid(real_uid).unwrap();
 
-    let effective_uid = uid_map.map_to_uid(real_effective_uid);
-    let saved_uid = uid_map.map_to_uid(real_saved_uid);
-    let fs_uid = uid_map.map_to_uid(real_fs_uid);
+    let effective_uid = uid_map.map_to_uid(real_effective_uid).unwrap();
+    let saved_uid = uid_map.map_to_uid(real_saved_uid).unwrap();
+    let fs_uid = uid_map.map_to_uid(real_fs_uid).unwrap();
 
-    let gid = gid_map.map_to_gid(real_gid);
-    let effective_gid = gid_map.map_to_gid(real_effective_gid);
-    let saved_gid = gid_map.map_to_gid(real_saved_gid);
-    let fs_gid = gid_map.map_to_gid(real_fs_gid);
+    let gid = gid_map.map_to_gid(real_gid).unwrap();
+    let effective_gid = gid_map.map_to_gid(real_effective_gid).unwrap();
+    let saved_gid = gid_map.map_to_gid(real_saved_gid).unwrap();
+    let fs_gid = gid_map.map_to_gid(real_fs_gid).unwrap();
 
     // get execution path
     let exec_path = fs::read_link(format!("/proc/{}/exe", real_pid))?;
@@ -1182,7 +1260,7 @@ pub fn get_real_proc(
                     connection.get_local_port(),
                     connection.get_remote_addr(),
                     connection.get_remote_port(),
-                    connection.get_conn_type(),
+                    connection.get_connection_type(),
                 );
 
                 let reverse_uni_conn = UniConnection::new(
@@ -1190,19 +1268,19 @@ pub fn get_real_proc(
                     connection.get_remote_port(),
                     connection.get_local_addr(),
                     connection.get_local_port(),
-                    connection.get_conn_type(),
+                    connection.get_connection_type(),
                 );
 
                 // get interface raw stats
                 if let Some(irawstat) = net_rawstat.get_irawstat(&iname) {
                     // get 2 uniconnection stats from interface raw stat
                     let uni_conn_stat = irawstat
-                        .get_uni_conn_stat(&uni_conn)
+                        .get_uni_connection_stat(&uni_conn)
                         .unwrap_or(&UniConnectionStat::new(uni_conn))
                         .clone();
 
                     let reverse_uni_conn_stat = irawstat
-                        .get_uni_conn_stat(&reverse_uni_conn)
+                        .get_uni_connection_stat(&reverse_uni_conn)
                         .unwrap_or(&UniConnectionStat::new(reverse_uni_conn))
                         .clone();
 
@@ -1219,7 +1297,7 @@ pub fn get_real_proc(
                     conn_stat.real_data_recv = reverse_uni_conn_stat.get_real_data_count();
 
                     // add new connection stat to interface stat
-                    proc.stat.netstat.add_conn_stat(&iname, conn_stat);
+                    proc.stat.netstat.add_connection_stat(&iname, conn_stat);
                 }
             }
         }
@@ -1286,6 +1364,7 @@ pub fn get_real_proc(
 pub fn iterate_proc_tree(
     root_proc: &Process,
     processes_list: &mut Vec<Process>,
+    iterated_pids: &mut Vec<Pid>,
     taskstats_conn: &TaskStatsConnection,
     net_rawstat: &mut NetworkRawStat,
 ) {
@@ -1297,11 +1376,14 @@ pub fn iterate_proc_tree(
     while !procs_stack.is_empty() {
         temp = procs_stack.pop().unwrap();
 
-        // TODO: instead of push to list, using thread & shared data
         // Push data of a process here
         processes_list.push(temp.clone());
+        iterated_pids.push(temp.real_pid);
 
         for child_real_pid in &temp.child_real_pid_list {
+            if iterated_pids.contains(child_real_pid) {
+                continue;
+            }
             if let Ok(child_proc) = get_real_proc(child_real_pid, taskstats_conn, net_rawstat) {
                 procs_stack.push(child_proc)
             }

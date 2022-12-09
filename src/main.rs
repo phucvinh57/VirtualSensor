@@ -1,14 +1,16 @@
 mod common;
-mod config;
 mod netlink;
 mod network_stat;
 mod process;
+mod setting;
 mod taskstat;
+use kafka::producer::{Producer, Record, RequiredAcks};
 use serde::Serialize;
-use serde_json;
+use setting::update_glob_conf;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::{task, time};
 
+use dotenv::dotenv;
 use std::any::Any;
 use std::convert::TryFrom;
 use std::fs;
@@ -20,15 +22,32 @@ extern crate lazy_static;
 
 use process::iterate_proc_tree;
 
-use crate::config::ConfigError;
 use crate::network_stat::{NetworkRawStat, NetworkStatError};
 use crate::process::{Pid, ProcessError};
+use crate::setting::ConfigError;
 use crate::taskstat::{TaskStatsConnection, TaskStatsError};
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct ContainerStat {
     container_name: String,
     processes: Vec<process::Process>,
+}
+
+#[derive(Serialize)]
+pub struct MessageChunk {
+    sensor_name: String,
+    cluster_name: String,
+    message: String,
+}
+
+impl MessageChunk {
+    pub fn new(sensor_name: String, cluster_name: String, message: String) -> Self {
+        Self {
+            sensor_name,
+            cluster_name,
+            message,
+        }
+    }
 }
 
 impl ContainerStat {
@@ -44,6 +63,8 @@ impl ContainerStat {
 pub struct TotalStat {
     container_stats: Vec<ContainerStat>,
     network_rawstat: NetworkRawStat,
+
+    #[serde(skip_serializing_if = "setting::has_unix_timestamp")]
     unix_timestamp: u64, // in seconds
 }
 
@@ -62,24 +83,33 @@ impl TotalStat {
     }
 }
 
-// TODO
 fn get_processes_stats(
     real_pid_list: &[Pid],
     taskstats_conn: &TaskStatsConnection,
     net_rawstat: &mut NetworkRawStat,
 ) -> Result<Vec<process::Process>, DaemonError> {
     let mut processes_list = Vec::new();
+    let mut iterated_pids = Vec::new();
 
     for curr_real_pid in real_pid_list {
+        if iterated_pids.contains(curr_real_pid) {
+            continue;
+        }
         if let Ok(proc) = process::get_real_proc(curr_real_pid, taskstats_conn, net_rawstat) {
-            iterate_proc_tree(&proc, &mut processes_list, taskstats_conn, net_rawstat);
+            iterate_proc_tree(
+                &proc,
+                &mut processes_list,
+                &mut iterated_pids,
+                taskstats_conn,
+                net_rawstat,
+            );
         }
     }
 
     Ok(processes_list)
 }
 
-async fn read_monitored_data() -> Result<(), DaemonError> {
+async fn read_monitored_data(kafka_producer: &mut Option<Producer>) -> Result<(), DaemonError> {
     // create new taskstat connection
     let mut taskstats_conn = TaskStatsConnection::new()?;
 
@@ -91,7 +121,8 @@ async fn read_monitored_data() -> Result<(), DaemonError> {
     total_stat.network_rawstat = network_stat::get_network_rawstat()?;
 
     // get global config
-    let glob_conf = config::get_glob_conf().unwrap();
+    let borrowing = setting::get_glob_conf()?;
+    let glob_conf = borrowing.read().unwrap();
 
     // for each monitor target
     'monitorLoop: for monitor_target in &glob_conf.get_monitor_targets() {
@@ -174,51 +205,119 @@ async fn read_monitored_data() -> Result<(), DaemonError> {
         .remove_unused_uni_connection_stats();
 
     // return result
-    if config::get_glob_conf().unwrap().is_print_pretty_output() {
-        let _ = fs::write(
-            "result.json",
-            serde_json::to_string_pretty(&total_stat)
-                .unwrap()
-                .as_bytes(),
-        );
+
+    let dev_flag = glob_conf.get_dev_flag();
+    let message_chunk_size = glob_conf.get_message_chunk_size();
+    let results_as_str = serde_json::to_string(&total_stat).unwrap();
+    let messages = if let Some(size) = message_chunk_size {
+        results_as_str
+            .chars()
+            .collect::<Vec<char>>()
+            .chunks(size)
+            .map(|c| c.iter().collect::<String>())
+            .collect::<Vec<String>>()
     } else {
-        let _ = fs::write(
-            "result.json",
-            serde_json::to_string(&total_stat).unwrap().as_bytes(),
+        vec![results_as_str; 1]
+    };
+
+    let mut i = 0;
+    let cluster_name = glob_conf.get_cluster();
+    let sensor_name = glob_conf.get_name();
+
+    for message in messages.iter() {
+        let msg_chunk = MessageChunk::new(
+            sensor_name.clone(),
+            cluster_name.clone(),
+            message.to_owned(),
         );
+        if dev_flag {
+            let _ = fs::write(
+                format!("./results/chunk_{}.json", i),
+                serde_json::to_string(&msg_chunk).unwrap(),
+            );
+            println!("Wrote to results/chunk_{}.json", i);
+        } else {
+            kafka_producer
+                .as_mut()
+                .unwrap()
+                .send(&Record::from_value(
+                    &format!("monitoring"),
+                    serde_json::to_string(&msg_chunk).unwrap(),
+                ))
+                .unwrap();
+            println!("Sent to kafka !");
+        }
+        i += 1;
     }
-    println!("Sent to kafka !");
+    println!("==========");
+
     Ok(())
 }
 
 #[tokio::main]
 async fn main() -> Result<(), DaemonError> {
-    // init config
-    if env::args().len() != 2 {
-        println!("Usage: ./daemon [config path]");
-        return Err(DaemonError::NoConfigPath);
-    }
+    dotenv().ok();
+    let redis_connection_url =
+        std::env::var("REDIS_CONNECTION_URL").expect("REDIS_CONNECTION_URL must be set.");
+    let kafka_connection_url =
+        std::env::var("KAFKA_CONNECTION_URL").expect("KAFKA_CONNECTION_URL must be set.");
 
-    config::fetch_glob_conf(&env::args().nth(1).unwrap())?;
+    let config_path = if env::args().len() == 2 {
+        env::args().nth(1).unwrap()
+    } else {
+        "config.toml".to_owned()
+    };
 
-    // init network capture
+    setting::init_glob_conf(config_path.as_str())?;
     network_stat::init_network_stat_capture()?;
 
-    let glob_conf = config::get_glob_conf().unwrap();
+    let monitoring_task = task::spawn(async move {
+        let glob_conf = setting::get_glob_conf().unwrap();
+        let mut kafka_producer = if !glob_conf.read().unwrap().get_dev_flag() {
+            Some(
+                Producer::from_hosts(vec![kafka_connection_url])
+                    .with_ack_timeout(Duration::from_secs(1))
+                    .with_required_acks(RequiredAcks::One)
+                    .create()
+                    .unwrap(),
+            )
+        } else {
+            None
+        };
 
-    let forever = task::spawn(async move {
-        let mut interval =
-            time::interval(Duration::from_secs(glob_conf.get_publish_msg_interval()));
-
+        let mut interval = time::interval(Duration::from_secs(
+            glob_conf.read().unwrap().get_publish_msg_interval(),
+        ));
         loop {
             interval.tick().await;
-            let _ = read_monitored_data().await;
+            let _ = read_monitored_data(&mut kafka_producer).await;
         }
     });
 
-    let _ = forever.await;
+    let serve_config_task_change = task::spawn(async move {
+        let redis_client = redis::Client::open(redis_connection_url).unwrap();
+        let mut connection = redis_client.get_connection().unwrap();
+        let mut pubsub = connection.as_pubsub();
+        pubsub.subscribe(format!("/update/config/1915940")).unwrap();
 
-    Err(DaemonError::UnknownErr)
+        loop {
+            let msg = pubsub.get_message().unwrap();
+            let payload: String = msg.get_payload().unwrap();
+            match update_glob_conf(config_path.clone(), payload) {
+                Ok(()) => {
+                    println!("Config changes")
+                }
+                Err(err) => {
+                    println!("{}", err)
+                }
+            };
+        }
+    });
+
+    match tokio::join!(serve_config_task_change, monitoring_task).0 {
+        Ok(_) => Ok(()),
+        Err(_) => Err(DaemonError::UnknownErr),
+    }
 }
 
 #[derive(Debug)]

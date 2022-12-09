@@ -1,7 +1,6 @@
 target/
-ThirdPartySourceOriginal/
-sensor
+results/
 *.json
-!filters.json
-
-node_modules
+*.txt
+.env
+sensor
